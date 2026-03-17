@@ -33,13 +33,17 @@ const months = [
 
 export default function AttendancePage() {
   const db = useFirestore();
-  const { user } = useUser();
+  const { user, isUserLoading: authLoading } = useUser();
   const { toast } = useToast();
   const [selectedClassId, setSelectedClassId] = useState<string>("");
   const [selectedMonth, setSelectedMonth] = useState(months[new Date().getMonth()]);
   const [absences, setAbsences] = useState<Record<string, string>>({});
 
-  const classesQuery = useMemoFirebase(() => collection(db, 'courses'), [db]);
+  const classesQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(db, 'courses');
+  }, [db, user]);
+  
   const { data: classes, isLoading: loadingClasses } = useCollection(classesQuery);
 
   useEffect(() => {
@@ -49,9 +53,9 @@ export default function AttendancePage() {
   }, [classes, selectedClassId]);
 
   const studentsQuery = useMemoFirebase(() => {
-    if (!selectedClassId) return null;
+    if (!user || !selectedClassId) return null;
     return query(collection(db, 'students'), where('courseIds', 'array-contains', selectedClassId));
-  }, [db, selectedClassId]);
+  }, [db, user, selectedClassId]);
 
   const { data: students, isLoading: loadingStudents } = useCollection(studentsQuery);
 
@@ -73,7 +77,7 @@ export default function AttendancePage() {
         id: attendanceId,
         studentId: student.id,
         courseId: selectedClassId,
-        date: new Date().toISOString().split('T')[0], // Mês de referência no ID
+        date: new Date().toISOString().split('T')[0],
         status: parseInt(absenceCount) > 0 ? 'Ausente' : 'Presente',
         notes: `Total de faltas no mês de ${selectedMonth}: ${absenceCount}`,
         recordedByProfessorId: user.uid,
@@ -90,8 +94,16 @@ export default function AttendancePage() {
     });
   };
 
-  if (loadingClasses) {
+  if (authLoading || (loadingClasses && !classes)) {
     return <div className="flex h-[80vh] items-center justify-center"><Loader2 className="animate-spin text-[#4CAF50]" /></div>;
+  }
+
+  if (!user) {
+    return (
+      <div className="flex h-[80vh] items-center justify-center">
+        <p className="text-muted-foreground">Por favor, realize o login para acessar a frequência.</p>
+      </div>
+    );
   }
 
   return (

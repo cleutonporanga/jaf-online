@@ -10,29 +10,46 @@ import {
   AlertCircle,
   Loader2 
 } from 'lucide-react';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy, limit } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { collection, query, orderBy, limit } from 'firebase/firestore';
 
 export default function Dashboard() {
   const db = useFirestore();
+  const { user, isUserLoading: authLoading } = useUser();
   
-  const coursesQuery = useMemoFirebase(() => collection(db, 'courses'), [db]);
-  const studentsQuery = useMemoFirebase(() => collection(db, 'students'), [db]);
-  const eventsQuery = useMemoFirebase(() => 
-    query(collection(db, 'schoolEvents'), orderBy('startDate', 'asc'), limit(3)), 
-    [db]
-  );
+  const coursesQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(db, 'courses');
+  }, [db, user]);
+
+  const studentsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(db, 'students');
+  }, [db, user]);
+
+  const eventsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collection(db, 'schoolEvents'), orderBy('startDate', 'asc'), limit(3));
+  }, [db, user]);
 
   const { data: courses, isLoading: loadingCourses } = useCollection(coursesQuery);
   const { data: students, isLoading: loadingStudents } = useCollection(studentsQuery);
   const { data: events, isLoading: loadingEvents } = useCollection(eventsQuery);
 
-  const isLoading = loadingCourses || loadingStudents || loadingEvents;
+  const isLoading = authLoading || loadingCourses || loadingStudents || loadingEvents;
 
   if (isLoading) {
     return (
       <div className="flex h-[80vh] items-center justify-center">
         <Loader2 className="h-12 w-12 text-[#4CAF50] animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex h-[80vh] items-center justify-center">
+        <p className="text-muted-foreground">Por favor, realize o login para acessar o painel.</p>
       </div>
     );
   }

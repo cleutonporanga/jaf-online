@@ -5,10 +5,14 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-store';
 import { Button } from '@/components/ui/button';
-import { GraduationCap, ArrowRight } from 'lucide-react';
+import { GraduationCap, ArrowRight, Loader2 } from 'lucide-react';
+import { useAuth as useFirebaseAuth, useUser } from '@/firebase';
+import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
 
 export default function Home() {
   const { isAuthenticated } = useAuth();
+  const { isUserLoading } = useUser();
+  const auth = useFirebaseAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -17,12 +21,16 @@ export default function Home() {
     }
   }, [isAuthenticated, router]);
 
+  const handleAccess = () => {
+    initiateAnonymousSignIn(auth);
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[#F5F5F5] font-body">
       <div className="max-w-md w-full text-center space-y-8 bg-white p-10 rounded-2xl shadow-xl border border-gray-100">
         <div className="flex flex-col items-center">
           <div className="bg-[#4CAF50] p-4 rounded-full mb-4">
-            <GraduationCap className="h-12 w-12 text-white" />
+            < GraduationCap className="h-12 w-12 text-white" />
           </div>
           <h1 className="text-4xl font-bold text-[#2E7D32] font-headline">ScholarView</h1>
           <p className="text-gray-500 mt-2">Gestão escolar inteligente e simplificada.</p>
@@ -31,10 +39,17 @@ export default function Home() {
         <div className="space-y-4">
           <Button 
             className="w-full h-12 text-lg bg-[#4CAF50] hover:bg-[#43a047] gap-2 rounded-xl shadow-lg"
-            onClick={() => router.push('/dashboard')}
+            onClick={handleAccess}
+            disabled={isUserLoading || isAuthenticated}
           >
-            Acessar Sistema
-            <ArrowRight className="h-5 w-5" />
+            {isUserLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <>
+                Acessar Sistema
+                <ArrowRight className="h-5 w-5" />
+              </>
+            )}
           </Button>
           <p className="text-sm text-gray-400">Entre com seu e-mail institucional para começar.</p>
         </div>
