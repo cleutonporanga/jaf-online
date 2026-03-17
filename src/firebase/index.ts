@@ -1,3 +1,4 @@
+
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
@@ -7,17 +8,16 @@ import { getFirestore } from 'firebase/firestore'
 
 export function initializeFirebase() {
   if (!getApps().length) {
-    // We prioritize the firebaseConfig object to ensure compatibility with Vercel and other platforms.
-    // initializeApp() without arguments is only safe on Firebase App Hosting.
     let firebaseApp;
     try {
+      // Prioritize explicit config to avoid 'app/no-options' error on platforms like Vercel
       firebaseApp = initializeApp(firebaseConfig);
     } catch (e) {
-      // Fallback for environment-based initialization if config fails.
+      console.warn('Firebase explicit initialization failed, attempting automatic fallback:', e);
       try {
         firebaseApp = initializeApp();
       } catch (innerError) {
-        console.error('Firebase initialization failed:', innerError);
+        console.error('Firebase initialization completely failed:', innerError);
         throw innerError;
       }
     }
