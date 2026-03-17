@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -8,7 +9,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the UserProfile entity. This typically correlates with an external authentication system's user ID (e.g., Firebase Auth UID)."
+          "description": "Unique identifier for the UserProfile entity."
         },
         "name": {
           "type": "string",
@@ -16,7 +17,7 @@
         },
         "email": {
           "type": "string",
-          "description": "The user's email address, primarily for display and communication, not for authentication.",
+          "description": "The user's email address.",
           "format": "email"
         },
         "role": {
@@ -25,12 +26,10 @@
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp when the user profile was created.",
           "format": "date-time"
         },
         "updatedAt": {
           "type": "string",
-          "description": "Timestamp when the user profile was last updated.",
           "format": "date-time"
         }
       },
@@ -50,44 +49,35 @@
       "description": "Represents a specific academic course or class within the school system.",
       "properties": {
         "id": {
-          "type": "string",
-          "description": "Unique identifier for the Course entity."
+          "type": "string"
         },
         "name": {
-          "type": "string",
-          "description": "The official name of the course or class."
+          "type": "string"
         },
         "description": {
-          "type": "string",
-          "description": "A detailed description of the course content and objectives."
+          "type": "string"
         },
         "year": {
-          "type": "string",
-          "description": "The academic year in which the course is offered (e.g., '2024-2025')."
+          "type": "string"
         },
         "gradeLevel": {
-          "type": "string",
-          "description": "The specific grade level or educational stage for which the course is intended (e.g., 'Ensino Médio 1º Ano')."
+          "type": "string"
         },
         "professorId": {
-          "type": "string",
-          "description": "Reference to the UserProfile of the primary professor assigned to this course. (Relationship: UserProfile 1:N Course)"
+          "type": "string"
         },
         "studentIds": {
           "type": "array",
-          "description": "References to Students enrolled in this course. (Relationship: Student N:N Course)",
           "items": {
             "type": "string"
           }
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp when the course was created.",
           "format": "date-time"
         },
         "updatedAt": {
           "type": "string",
-          "description": "Timestamp when the course was last updated.",
           "format": "date-time"
         }
       },
@@ -102,316 +92,125 @@
         "updatedAt"
       ]
     },
-    "Student": {
+    "SchoolSchedule": {
       "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SchoolSchedule",
+      "type": "object",
+      "description": "Represents a class session in the weekly school schedule.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "courseId": {
+          "type": "string",
+          "description": "The course this schedule belongs to."
+        },
+        "dayOfWeek": {
+          "type": "string",
+          "enum": ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"]
+        },
+        "startTime": {
+          "type": "string",
+          "description": "Start time of the class (HH:mm)."
+        },
+        "endTime": {
+          "type": "string",
+          "description": "End time of the class (HH:mm)."
+        },
+        "subject": {
+          "type": "string",
+          "description": "The subject name."
+        },
+        "teacherName": {
+          "type": "string",
+          "description": "Name of the teacher for this specific slot."
+        }
+      },
+      "required": ["courseId", "dayOfWeek", "startTime", "endTime", "subject"]
+    },
+    "Student": {
       "title": "Student",
       "type": "object",
-      "description": "Represents a student enrolled in the school, including personal and enrollment details.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Student entity."
-        },
-        "firstName": {
-          "type": "string",
-          "description": "The first name of the student."
-        },
-        "lastName": {
-          "type": "string",
-          "description": "The last name of the student."
-        },
-        "email": {
-          "type": "string",
-          "description": "The student's email address, primarily for communication.",
-          "format": "email"
-        },
-        "enrollmentNumber": {
-          "type": "string",
-          "description": "A unique enrollment or registration number for the student within the school system."
-        },
-        "enrollmentDate": {
-          "type": "string",
-          "description": "The date when the student officially enrolled.",
-          "format": "date"
-        },
-        "dateOfBirth": {
-          "type": "string",
-          "description": "The student's date of birth.",
-          "format": "date"
-        },
-        "courseIds": {
-          "type": "array",
-          "description": "References to Courses the student is currently enrolled in. (Relationship: Course N:N Student)",
-          "items": {
-            "type": "string"
-          }
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the student record was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the student record was last updated.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "firstName": { "type": "string" },
+        "lastName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "enrollmentNumber": { "type": "string" },
+        "enrollmentDate": { "type": "string", "format": "date" },
+        "dateOfBirth": { "type": "string", "format": "date" },
+        "courseIds": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "firstName",
-        "lastName",
-        "enrollmentNumber",
-        "enrollmentDate",
-        "dateOfBirth",
-        "courseIds",
-        "createdAt",
-        "updatedAt"
-      ]
+      "required": ["id", "firstName", "lastName", "enrollmentNumber", "enrollmentDate", "dateOfBirth", "courseIds", "createdAt", "updatedAt"]
     },
     "AttendanceRecord": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AttendanceRecord",
       "type": "object",
-      "description": "Records the attendance status of a student for a specific course on a given date.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the AttendanceRecord entity."
-        },
-        "date": {
-          "type": "string",
-          "description": "The date for which the attendance is being recorded.",
-          "format": "date"
-        },
-        "status": {
-          "type": "string",
-          "description": "The attendance status (e.g., 'Presente', 'Ausente', 'Atestado')."
-        },
-        "studentId": {
-          "type": "string",
-          "description": "Reference to the Student for whom attendance is recorded. (Relationship: Student 1:N AttendanceRecord)"
-        },
-        "courseId": {
-          "type": "string",
-          "description": "Reference to the Course for which attendance is recorded. (Relationship: Course 1:N AttendanceRecord)"
-        },
-        "recordedByProfessorId": {
-          "type": "string",
-          "description": "Reference to the UserProfile of the professor who recorded this attendance. (Relationship: UserProfile 1:N AttendanceRecord)"
-        },
-        "notes": {
-          "type": "string",
-          "description": "Optional notes or justification for the attendance status."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the attendance record was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the attendance record was last updated.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "status": { "type": "string" },
+        "studentId": { "type": "string" },
+        "courseId": { "type": "string" },
+        "recordedByProfessorId": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "date",
-        "status",
-        "studentId",
-        "courseId",
-        "recordedByProfessorId",
-        "createdAt",
-        "updatedAt"
-      ]
+      "required": ["id", "date", "status", "studentId", "courseId", "recordedByProfessorId", "createdAt", "updatedAt"]
     },
     "GradeRecord": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "GradeRecord",
       "type": "object",
-      "description": "Stores individual grades awarded to students for specific activities within a course.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the GradeRecord entity."
-        },
-        "value": {
-          "type": "number",
-          "description": "The numerical grade awarded to the student."
-        },
-        "activityName": {
-          "type": "string",
-          "description": "The name of the academic activity for which the grade was given (e.g., 'Prova Bimestral', 'Trabalho em Grupo')."
-        },
-        "description": {
-          "type": "string",
-          "description": "An optional detailed description of the activity."
-        },
-        "date": {
-          "type": "string",
-          "description": "The date when the grade was awarded or the activity took place.",
-          "format": "date"
-        },
-        "studentId": {
-          "type": "string",
-          "description": "Reference to the Student who received this grade. (Relationship: Student 1:N GradeRecord)"
-        },
-        "courseId": {
-          "type": "string",
-          "description": "Reference to the Course where this grade was awarded. (Relationship: Course 1:N GradeRecord)"
-        },
-        "recordedByProfessorId": {
-          "type": "string",
-          "description": "Reference to the UserProfile of the professor who recorded this grade. (Relationship: UserProfile 1:N GradeRecord)"
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the grade record was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the grade record was last updated.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "value": { "type": "number" },
+        "activityName": { "type": "string" },
+        "description": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "studentId": { "type": "string" },
+        "courseId": { "type": "string" },
+        "recordedByProfessorId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "value",
-        "activityName",
-        "date",
-        "studentId",
-        "courseId",
-        "recordedByProfessorId",
-        "createdAt",
-        "updatedAt"
-      ]
+      "required": ["id", "value", "activityName", "date", "studentId", "courseId", "recordedByProfessorId", "createdAt", "updatedAt"]
     },
     "SchoolEvent": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "SchoolEvent",
       "type": "object",
-      "description": "Manages various events related to the school calendar, such as holidays, deadlines, and special classes.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the SchoolEvent entity."
-        },
-        "title": {
-          "type": "string",
-          "description": "The title of the event."
-        },
-        "description": {
-          "type": "string",
-          "description": "A detailed description of the event."
-        },
-        "startDate": {
-          "type": "string",
-          "description": "The start date and time of the event.",
-          "format": "date-time"
-        },
-        "endDate": {
-          "type": "string",
-          "description": "The end date and time of the event.",
-          "format": "date-time"
-        },
-        "type": {
-          "type": "string",
-          "description": "The type of the event (e.g., 'Evento Geral', 'Prazo', 'Feriado', 'Aula Especial')."
-        },
-        "location": {
-          "type": "string",
-          "description": "The physical or virtual location of the event."
-        },
-        "courseIds": {
-          "type": "array",
-          "description": "References to Courses this event is associated with. If empty, the event is general. (Relationship: Course N:N SchoolEvent)",
-          "items": {
-            "type": "string"
-          }
-        },
-        "createdByUserId": {
-          "type": "string",
-          "description": "Reference to the UserProfile who created this event. (Relationship: UserProfile 1:N SchoolEvent)"
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the event record was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the event record was last updated.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "startDate": { "type": "string", "format": "date-time" },
+        "endDate": { "type": "string", "format": "date-time" },
+        "type": { "type": "string" },
+        "location": { "type": "string" },
+        "courseIds": { "type": "array", "items": { "type": "string" } },
+        "createdByUserId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "title",
-        "startDate",
-        "endDate",
-        "type",
-        "createdByUserId",
-        "createdAt",
-        "updatedAt"
-      ]
+      "required": ["id", "title", "startDate", "endDate", "type", "createdByUserId", "createdAt", "updatedAt"]
     },
     "StudentHighlight": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "StudentHighlight",
       "type": "object",
-      "description": "Stores AI-generated insights about student performance, identifying achievements or areas for improvement.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the StudentHighlight entity."
-        },
-        "studentId": {
-          "type": "string",
-          "description": "Reference to the Student to whom this highlight pertains. (Relationship: Student 1:N StudentHighlight)"
-        },
-        "courseId": {
-          "type": "string",
-          "description": "Reference to the Course related to this highlight, if applicable. (Relationship: Course 1:N StudentHighlight)"
-        },
-        "type": {
-          "type": "string",
-          "description": "The type of highlight (e.g., 'Conquista' for achievement, 'Melhoria' for area of improvement)."
-        },
-        "description": {
-          "type": "string",
-          "description": "The AI-generated descriptive text of the highlight."
-        },
-        "generatedDate": {
-          "type": "string",
-          "description": "Timestamp when this highlight was generated by the AI system.",
-          "format": "date-time"
-        },
-        "acknowledgedByProfessorId": {
-          "type": "string",
-          "description": "Optional reference to the UserProfile of the professor who acknowledged or reviewed this highlight. (Relationship: UserProfile 1:N StudentHighlight)"
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the student highlight record was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the student highlight record was last updated.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "studentId": { "type": "string" },
+        "courseId": { "type": "string" },
+        "type": { "type": "string" },
+        "description": { "type": "string" },
+        "generatedDate": { "type": "string", "format": "date-time" },
+        "acknowledgedByProfessorId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "studentId",
-        "type",
-        "description",
-        "generatedDate",
-        "createdAt",
-        "updatedAt"
-      ]
+      "required": ["id", "studentId", "type", "description", "generatedDate", "createdAt", "updatedAt"]
     }
   },
   "auth": {
@@ -426,115 +225,74 @@
         "path": "/userProfiles/{userId}",
         "definition": {
           "entityName": "UserProfile",
-          "schema": {
-            "$ref": "#/backend/entities/UserProfile"
-          },
-          "description": "Stores user profiles, including their role (administrador, professor). The document ID (`userId`) corresponds to the Firebase Auth UID. Includes denormalized 'role' for authorization independence.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user profile, matching the Firebase Authentication UID."
-            }
-          ]
+          "schema": { "$ref": "#/backend/entities/UserProfile" },
+          "description": "User profiles.",
+          "params": [{ "name": "userId" }]
         }
       },
       {
         "path": "/courses/{courseId}",
         "definition": {
           "entityName": "Course",
-          "schema": {
-            "$ref": "#/backend/entities/Course"
-          },
-          "description": "Stores information about academic courses. Includes denormalized 'professorId' and 'studentIds' array for authorization independence and efficient access queries.",
-          "params": [
-            {
-              "name": "courseId",
-              "description": "The unique identifier for the course."
-            }
-          ]
+          "schema": { "$ref": "#/backend/entities/Course" },
+          "description": "Courses/classes.",
+          "params": [{ "name": "courseId" }]
+        }
+      },
+      {
+        "path": "/schedules/{scheduleId}",
+        "definition": {
+          "entityName": "SchoolSchedule",
+          "schema": { "$ref": "#/backend/entities/SchoolSchedule" },
+          "description": "Weekly class schedules.",
+          "params": [{ "name": "scheduleId" }]
         }
       },
       {
         "path": "/students/{studentId}",
         "definition": {
           "entityName": "Student",
-          "schema": {
-            "$ref": "#/backend/entities/Student"
-          },
-          "description": "Stores student records. Includes denormalized 'professorIds' array (UIDs of all professors teaching courses this student is in) and an optional 'associatedUserId' (the student's UserProfile UID if they have an account) for authorization independence.",
-          "params": [
-            {
-              "name": "studentId",
-              "description": "The unique identifier for the student."
-            }
-          ]
+          "schema": { "$ref": "#/backend/entities/Student" },
+          "description": "Student records.",
+          "params": [{ "name": "studentId" }]
         }
       },
       {
         "path": "/attendanceRecords/{attendanceId}",
         "definition": {
           "entityName": "AttendanceRecord",
-          "schema": {
-            "$ref": "#/backend/entities/AttendanceRecord"
-          },
-          "description": "Stores attendance records for students in courses. Includes denormalized 'courseId', 'studentId', 'recordedByProfessorId', 'courseProfessorId' (the professor of the linked course), and 'studentAssociatedUserId' (the student's UserProfile UID) for authorization independence.",
-          "params": [
-            {
-              "name": "attendanceId",
-              "description": "The unique identifier for the attendance record."
-            }
-          ]
+          "schema": { "$ref": "#/backend/entities/AttendanceRecord" },
+          "description": "Attendance logs.",
+          "params": [{ "name": "attendanceId" }]
         }
       },
       {
         "path": "/gradeRecords/{gradeId}",
         "definition": {
           "entityName": "GradeRecord",
-          "schema": {
-            "$ref": "#/backend/entities/GradeRecord"
-          },
-          "description": "Stores grade records for students in courses. Includes denormalized 'courseId', 'studentId', 'recordedByProfessorId', 'courseProfessorId' (the professor of the linked course), and 'studentAssociatedUserId' (the student's UserProfile UID) for authorization independence.",
-          "params": [
-            {
-              "name": "gradeId",
-              "description": "The unique identifier for the grade record."
-            }
-          ]
+          "schema": { "$ref": "#/backend/entities/GradeRecord" },
+          "description": "Student grades.",
+          "params": [{ "name": "gradeId" }]
         }
       },
       {
         "path": "/schoolEvents/{eventId}",
         "definition": {
           "entityName": "SchoolEvent",
-          "schema": {
-            "$ref": "#/backend/entities/SchoolEvent"
-          },
-          "description": "Manages school events. Includes denormalized 'createdByUserId', 'associatedCourseProfessorIds' (UIDs of professors for linked courses), and 'associatedCourseStudentIds' (UIDs of students for linked courses) for authorization independence.",
-          "params": [
-            {
-              "name": "eventId",
-              "description": "The unique identifier for the school event."
-            }
-          ]
+          "schema": { "$ref": "#/backend/entities/SchoolEvent" },
+          "description": "School events.",
+          "params": [{ "name": "eventId" }]
         }
       },
       {
         "path": "/studentHighlights/{highlightId}",
         "definition": {
           "entityName": "StudentHighlight",
-          "schema": {
-            "$ref": "#/backend/entities/StudentHighlight"
-          },
-          "description": "Stores AI-generated insights about student performance. Includes denormalized 'studentId', 'courseId', 'acknowledgedByProfessorId', 'courseProfessorId' (the professor of the linked course), and 'studentAssociatedUserId' (the student's UserProfile UID) for authorization independence.",
-          "params": [
-            {
-              "name": "highlightId",
-              "description": "The unique identifier for the student highlight."
-            }
-          ]
+          "schema": { "$ref": "#/backend/entities/StudentHighlight" },
+          "description": "AI student highlights.",
+          "params": [{ "name": "highlightId" }]
         }
       }
-    ],
-    "reasoning": "The Firestore structure for ScholarView is designed with a strong emphasis on Authorization Independence, Structural Segregation, and clear Access Modeling to ensure robust security rules and efficient queries (QAPs - Queries are not Filters).\n\n**Authorization Independence & Denormalization Strategy:**\n\n1.  **User Profiles (`/userProfiles/{userId}`):** Each user's profile, including their `role` (administrador/professor), is stored in a top-level collection. The document ID (`{userId}`) directly corresponds to the Firebase Authentication UID (`request.auth.uid`), enabling simple path-based authorization for individual users. The `role` field is explicitly stored within the document, eliminating the need for `get()` calls in security rules to determine a user's permissions.\n\n2.  **Courses (`/courses/{courseId}`):** Courses are top-level. The `professorId` (the assigned professor's UID) and `studentIds` (an array of enrolled student UIDs) are denormalized directly into each Course document. This allows security rules to check `request.auth.uid == resource.data.professorId` for professors managing their courses, or `request.auth.uid in resource.data.studentIds` for students to view their enrolled courses, all without `get()` calls.\n\n3.  **Students (`/students/{studentId}`):** Student records are top-level. To grant professors read access to their students (those enrolled in courses they teach), a `professorIds` array is denormalized onto each Student document. This array contains the UIDs of all professors associated with any course the student is enrolled in. An optional `associatedUserId` field is added to the Student schema to link to a `UserProfile`'s UID, allowing students to view their own records if they have a system account. This ensures professor access to student data via `request.auth.uid in resource.data.professorIds` and student self-access via `request.auth.uid == resource.data.associatedUserId`.\n\n4.  **Attendance, Grades, Highlights (`/attendanceRecords/{attendanceId}`, `/gradeRecords/{gradeId}`, `/studentHighlights/{highlightId}`):** These records are stored in top-level collections. Crucially, each document denormalizes the `courseProfessorId` (the UID of the professor assigned to the related course) and `studentAssociatedUserId` (the UID of the student's associated UserProfile, if applicable). This allows security rules to explicitly verify access based on `request.auth.uid == resource.data.courseProfessorId` for professors and `request.auth.uid == resource.data.studentAssociatedUserId` for students, again avoiding expensive and non-atomic `get()` operations.\n\n5.  **School Events (`/schoolEvents/{eventId}`):** Events are top-level. For events associated with specific courses, `associatedCourseProfessorIds` (an array of UIDs for professors of all linked courses) and `associatedCourseStudentIds` (an array of UIDs for students of all linked courses) are denormalized into the event document. This enables professors and students to view relevant events without complex joins or `get()` calls, using `array-contains` checks in rules.\n\n**Structural Segregation & QAPs (Queries are not Filters):**\n\nEach collection (`/userProfiles`, `/courses`, `/students`, `/attendanceRecords`, `/gradeRecords`, `/schoolEvents`, `/studentHighlights`) maintains a homogeneous security posture. All documents within a collection share the same access patterns, simplifying security rules. For example, all `Course` documents require `administrador` full access, `professor` access if `professorId` matches, and `student` access if their `uid` is in `studentIds`. This segregation ensures that a single set of rules can govern an entire collection.\n\nQAPs are achieved by this extensive denormalization. For instance, a professor can list all attendance records for their courses with a simple query like `db.collection('attendanceRecords').where('courseProfessorId', '==', request.auth.uid)`. The security rule then only needs to verify `resource.data.courseProfessorId == request.auth.uid`, which is a direct check on the document itself. This ensures that the query itself respects the security boundaries, rather than fetching unpermitted data and filtering it out client-side, or requiring complex server-side filtering via security rules that would rely on `get()` calls, which are not permitted for `list` operations."
+    ]
   }
 }

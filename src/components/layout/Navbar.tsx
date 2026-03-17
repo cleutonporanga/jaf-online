@@ -15,7 +15,8 @@ import {
   LogOut,
   Users,
   Loader2,
-  UserPlus
+  UserPlus,
+  Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePathname, useRouter } from 'next/navigation';
@@ -62,11 +63,10 @@ export function Navbar() {
                                (firebaseUser.email === TEACHER_EMAIL) ? 'professor' : 
                                (data.role as UserRole);
             
-            role = targetRole;
-
             if (data.role !== targetRole) {
               await setDoc(userRef, { role: targetRole, updatedAt: serverTimestamp() }, { merge: true });
             }
+            role = targetRole;
           } else {
             await setDoc(userRef, {
               id: firebaseUser.uid,
@@ -102,6 +102,7 @@ export function Navbar() {
   const navItems = [
     { name: 'Início', href: '/dashboard', icon: Home },
     { name: 'Calendário', href: '/calendar', icon: CalendarIcon },
+    { name: 'Horário', href: '/schedule', icon: Clock },
     { name: 'Turmas', href: '/classes', icon: GraduationCap },
     { name: 'Alunos', href: '/students', icon: UserPlus },
     { name: 'Frequência', href: '/attendance', icon: BarChart3 },
