@@ -53,8 +53,8 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (err: FirestoreError) => {
-        // Safe path detection without accessing internal _query properties
-        const path = (memoizedTargetRefOrQuery as any).path || 'unknown-path';
+        // Fallback seguro para o caminho da coleção sem acessar propriedades internas
+        const path = (memoizedTargetRefOrQuery as any).path || 'collection-path';
 
         const contextualError = new FirestorePermissionError({
           operation: 'list',

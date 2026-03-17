@@ -53,7 +53,6 @@ export default function CalendarPage() {
   const { user: appUser } = useAuth();
   const { toast } = useToast();
   
-  // Hydration fix: Initialize state with null or fixed value and set in useEffect
   const [currentMonth, setCurrentMonth] = useState<Date | null>(null);
   const [mounted, setMounted] = useState(false);
   
@@ -94,8 +93,8 @@ export default function CalendarPage() {
     );
   }
 
-  const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
-  const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
+  const nextMonth = () => setCurrentMonth(prev => prev ? addMonths(prev, 1) : null);
+  const prevMonth = () => setCurrentMonth(prev => prev ? subMonths(prev, 1) : null);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(monthStart);

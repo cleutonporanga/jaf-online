@@ -78,9 +78,9 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   }, [auth]);
 
   const contextValue = useMemo((): FirebaseContextState => {
-    const servicesAvailable = !!(firebaseApp && firestore && auth);
+    // Permitir serviços nulos durante a fase de build/SSR
     return {
-      areServicesAvailable: servicesAvailable,
+      areServicesAvailable: !!(firebaseApp && firestore && auth),
       firebaseApp: firebaseApp || null,
       firestore: firestore || null,
       auth: auth || null,
@@ -102,7 +102,15 @@ export const useFirebase = (): FirebaseServicesAndUser => {
   const context = useContext(FirebaseContext);
 
   if (context === undefined) {
-    throw new Error('useFirebase must be used within a FirebaseProvider.');
+    // Retornar um estado nulo seguro em vez de lançar erro fatal
+    return {
+      firebaseApp: null,
+      firestore: null,
+      auth: null,
+      user: null,
+      isUserLoading: true,
+      userError: null,
+    };
   }
 
   return {
