@@ -25,9 +25,7 @@ import { useAuth as useFirebaseAuth, useUser, useFirestore } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
-const ADMIN_EMAIL = 'cleutonlima06@gmail.com';
-const TEACHER_EMAIL = 'jaf@escola.com';
-const STUDENT_EMAIL = 'aluno@escola.com';
+const ADMIN_EMAILS = ['cleutonlima06@gmail.com', 'cleutonporanga@gmail.com'];
 
 export function Navbar() {
   const firebaseAuth = useFirebaseAuth();
@@ -49,30 +47,28 @@ export function Navbar() {
           const userSnap = await getDoc(userRef);
           
           let role: UserRole = 'professor';
-          const email = firebaseUser.email?.toLowerCase();
+          const userEmail = firebaseUser.email?.toLowerCase();
 
-          if (email === ADMIN_EMAIL.toLowerCase()) {
+          // Identificação imediata de administradores configurados
+          if (userEmail && ADMIN_EMAILS.includes(userEmail)) {
             role = 'administrador';
-          } else if (email === STUDENT_EMAIL) {
-            role = 'aluno';
-          } else if (email === TEACHER_EMAIL) {
-            role = 'professor';
           }
 
           if (userSnap.exists()) {
             const data = userSnap.data();
             const currentRoleInDb = data.role as UserRole;
             
-            if (email === ADMIN_EMAIL.toLowerCase() && currentRoleInDb !== 'administrador') {
+            // Força o papel de administrador se estiver na lista permitida
+            if (role === 'administrador' && currentRoleInDb !== 'administrador') {
               await setDoc(userRef, { role: 'administrador', updatedAt: serverTimestamp() }, { merge: true });
-              role = 'administrador';
             } else {
               role = currentRoleInDb;
             }
           } else {
+            // Cria o perfil inicial se não existir
             await setDoc(userRef, {
               id: firebaseUser.uid,
-              name: firebaseUser.displayName || email?.split('@')[0] || 'Usuário',
+              name: firebaseUser.displayName || userEmail?.split('@')[0] || 'Usuário',
               email: firebaseUser.email,
               role: role,
               createdAt: serverTimestamp(),

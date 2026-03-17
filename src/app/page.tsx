@@ -44,8 +44,8 @@ export default function Home() {
     if (!auth) {
       toast({
         variant: "destructive",
-        title: "Iniciando sistema...",
-        description: "Os serviços de segurança estão carregando. Tente novamente em 2 segundos."
+        title: "Sistema em inicialização",
+        description: "O serviço de autenticação está sendo carregado. Tente novamente em alguns segundos."
       });
       return;
     }
@@ -71,7 +71,7 @@ export default function Home() {
             <GraduationCap className="h-12 w-12 text-white" />
           </div>
           <h1 className="text-3xl font-bold font-headline">JAF Online</h1>
-          <p className="opacity-90 text-sm">Gestão Inteligente</p>
+          <p className="opacity-90 text-sm">Escola Joaquim Antônio Filho</p>
         </div>
         
         <CardContent className="p-8 space-y-6 bg-white">
@@ -119,16 +119,16 @@ export default function Home() {
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
                 <>
-                  Entrar no Sistema
+                  Acessar Sistema
                   <ArrowRight className="h-5 w-5" />
                 </>
               )}
             </Button>
           </form>
           
-          <div className="text-center">
-            <p className="text-xs text-gray-400">
-              Escola Joaquim Antônio Filho | 2026
+          <div className="text-center pt-4">
+            <p className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">
+              Gestão Educacional Inteligente © 2026
             </p>
           </div>
         </CardContent>
