@@ -1,3 +1,16 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "school-hero",
+      "description": "Modern school building architecture",
+      "imageUrl": "https://picsum.photos/seed/school1/1200/600",
+      "imageHint": "modern school"
+    },
+    {
+      "id": "teacher-avatar",
+      "description": "Professional teacher avatar",
+      "imageUrl": "https://picsum.photos/seed/teacher/150/150",
+      "imageHint": "professional person"
+    }
+  ]
 }
