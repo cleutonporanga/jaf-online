@@ -1,153 +1,180 @@
+
 "use client";
 
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar } from '@/components/ui/calendar';
+import { Button } from '@/components/ui/button';
+import { 
+  ChevronLeft, 
+  ChevronRight, 
+  Plus,
+  Calendar as CalendarIcon,
+  MapPin,
+  Clock
+} from 'lucide-react';
+import { 
+  format, 
+  addMonths, 
+  subMonths, 
+  startOfMonth, 
+  endOfMonth, 
+  startOfWeek, 
+  endOfWeek, 
+  isSameMonth, 
+  isSameDay, 
+  addDays, 
+  eachDayOfInterval 
+} from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { mockEvents } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Calendar as CalendarIcon, 
-  Plus,
-  MapPin,
-  Clock,
-  Info
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 export default function CalendarPage() {
-  const [date, setDate] = useState<Date | undefined>(new Date());
-  
-  // Formata a data selecionada para comparação com os mocks (YYYY-MM-DD)
-  const selectedDateStr = date ? date.toLocaleDateString('en-CA') : '';
-  const dayEvents = mockEvents.filter(e => e.date === selectedDateStr);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+
+  const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
+  const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
+
+  const monthStart = startOfMonth(currentMonth);
+  const monthEnd = endOfMonth(monthStart);
+  const startDate = startOfWeek(monthStart, { weekStartsOn: 0 });
+  const endDate = endOfWeek(monthEnd, { weekStartsOn: 0 });
+
+  const calendarDays = eachDayOfInterval({
+    start: startDate,
+    end: endDate,
+  });
+
+  const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+  const getEventsForDay = (day: Date) => {
+    const dateStr = format(day, 'yyyy-MM-dd');
+    return mockEvents.filter(event => event.date === dateStr);
+  };
 
   return (
     <div className="min-h-full bg-[#F5F5F5]">
-      <main className="container mx-auto px-4 py-8 space-y-8">
+      <main className="container mx-auto px-4 py-8 space-y-6">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-[#2E7D32] font-headline">Calendário Escolar</h1>
-            <p className="text-muted-foreground">Acompanhe feriados, prazos e eventos acadêmicos.</p>
+            <p className="text-muted-foreground">Acompanhe e gerencie os eventos da instituição.</p>
           </div>
           <Button className="bg-[#4CAF50] hover:bg-[#43a047] gap-2 rounded-xl shadow-md h-11 px-6">
             <Plus className="h-5 w-5" />
-            Adicionar Evento
+            Novo Evento
           </Button>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Lado Esquerdo: O Calendário */}
-          <div className="space-y-6">
-            <Card className="border-none shadow-xl bg-white overflow-hidden rounded-2xl">
-              <CardContent className="p-4 flex justify-center">
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={setDate}
-                  locale={ptBR}
-                  className="w-full max-w-sm"
-                  classNames={{
-                    day_selected: "bg-[#4CAF50] text-white hover:bg-[#4CAF50] focus:bg-[#4CAF50] rounded-lg",
-                    day_today: "bg-emerald-50 text-[#2E7D32] font-bold border border-emerald-200 rounded-lg",
-                    head_cell: "text-emerald-700 font-bold uppercase text-[10px] w-9 text-center",
-                  }}
-                />
-              </CardContent>
-            </Card>
+        <Card className="border-none shadow-xl overflow-hidden rounded-2xl bg-white">
+          <CardHeader className="flex flex-row items-center justify-between py-6 px-8 border-b">
+            <CardTitle className="text-2xl font-bold text-[#2E7D32] capitalize">
+              {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={prevMonth}
+                className="border-emerald-200 text-[#2E7D32] hover:bg-emerald-50"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setCurrentMonth(new Date())}
+                className="border-emerald-200 text-[#2E7D32] hover:bg-emerald-50 px-4"
+              >
+                Hoje
+              </Button>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={nextMonth}
+                className="border-emerald-200 text-[#2E7D32] hover:bg-emerald-50"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            {/* Dias da Semana */}
+            <div className="grid grid-cols-7 bg-emerald-50/50 border-b">
+              {weekDays.map((day) => (
+                <div 
+                  key={day} 
+                  className="py-3 text-center text-xs font-bold text-emerald-800 uppercase tracking-wider border-r last:border-r-0"
+                >
+                  {day}
+                </div>
+              ))}
+            </div>
 
-            <Card className="border-none shadow-md overflow-hidden rounded-2xl bg-white">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-bold flex items-center gap-2 text-emerald-800">
-                  <Info className="h-4 w-4" />
-                  Legenda de Cores
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 pt-2">
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="h-3 w-3 rounded-full bg-orange-400" />
-                  <span className="text-gray-600">Feriados e Recessos</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="h-3 w-3 rounded-full bg-emerald-400" />
-                  <span className="text-gray-600">Reuniões Pedagógicas</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="h-3 w-3 rounded-full bg-red-400" />
-                  <span className="text-gray-600">Prazos de Notas</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="h-3 w-3 rounded-full bg-[#4CAF50]" />
-                  <span className="text-gray-600">Eventos da Comunidade</span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+            {/* Grade de Dias */}
+            <div className="grid grid-cols-7">
+              {calendarDays.map((day, idx) => {
+                const dayEvents = getEventsForDay(day);
+                const isCurrentMonth = isSameMonth(day, monthStart);
+                const isToday = isSameDay(day, new Date());
 
-          {/* Lado Direito: Eventos do Dia e Detalhes */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card className="border-none shadow-xl overflow-hidden rounded-2xl bg-white min-h-[500px]">
-              <CardHeader className="bg-white border-b flex flex-row items-center justify-between py-6 px-8">
-                <div>
-                  <CardTitle className="text-xl text-[#2E7D32]">Eventos Agendados</CardTitle>
-                  <p className="text-xs text-muted-foreground mt-1">Visualize o que está acontecendo hoje</p>
-                </div>
-                <Badge variant="outline" className="text-[#2E7D32] border-[#4CAF50] bg-emerald-50 px-4 py-1.5 text-sm font-bold rounded-lg capitalize">
-                  {date?.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
-                </Badge>
-              </CardHeader>
-              <CardContent className="p-8">
-                {dayEvents.length > 0 ? (
-                  <div className="space-y-6">
-                    {dayEvents.map(event => (
-                      <div key={event.id} className="p-6 rounded-2xl border border-emerald-100 bg-emerald-50/20 flex items-start gap-6 group hover:border-[#4CAF50] transition-all">
-                        <div className={`p-4 rounded-2xl shadow-sm ${
-                          event.type === 'holiday' ? 'bg-orange-100 text-orange-600' : 
-                          event.type === 'meeting' ? 'bg-emerald-100 text-emerald-600' :
-                          'bg-emerald-100 text-[#4CAF50]'
-                        }`}>
-                          <CalendarIcon className="h-7 w-7" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <h3 className="font-bold text-xl text-gray-800 group-hover:text-[#2E7D32] transition-colors">{event.title}</h3>
-                            <Badge className={`${
-                              event.type === 'holiday' ? 'bg-orange-500' : 'bg-[#4CAF50]'
-                            }`}>
-                              {event.type === 'holiday' ? 'Feriado' : event.type === 'meeting' ? 'Reunião' : 'Geral'}
-                            </Badge>
-                          </div>
-                          <div className="flex flex-wrap gap-6 mt-4 text-sm text-gray-500">
-                            <div className="flex items-center gap-2">
-                              <Clock className="h-4 w-4 text-[#4CAF50]" />
-                              <span className="font-medium text-gray-700">Horário Integral</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <MapPin className="h-4 w-4 text-[#4CAF50]" />
-                              <span className="font-medium text-gray-700">Auditório Principal</span>
-                            </div>
-                          </div>
-                          <div className="mt-4 pt-4 border-t border-emerald-50 text-sm text-gray-600 leading-relaxed">
-                            Evento destinado a toda a comunidade escolar. Para mais informações, consulte a coordenação pedagógica no bloco A.
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-24 text-center">
-                    <div className="bg-gray-50 p-6 rounded-full mb-6">
-                      <CalendarIcon className="h-16 w-16 text-gray-200" />
+                return (
+                  <div 
+                    key={idx} 
+                    className={cn(
+                      "min-h-[120px] p-2 border-r border-b last:border-r-0 transition-colors relative group hover:bg-emerald-50/30",
+                      !isCurrentMonth && "bg-gray-50/50 text-gray-400"
+                    )}
+                  >
+                    <div className="flex justify-between items-start mb-1">
+                      <span className={cn(
+                        "flex items-center justify-center w-7 h-7 text-sm font-bold rounded-full",
+                        isToday ? "bg-[#4CAF50] text-white" : "text-gray-700",
+                        !isCurrentMonth && "text-gray-300"
+                      )}>
+                        {format(day, 'd')}
+                      </span>
                     </div>
-                    <h3 className="text-xl font-bold text-gray-400">Nenhum compromisso</h3>
-                    <p className="text-muted-foreground max-w-xs mt-2">Não há eventos registrados para este dia. Aproveite o tempo para planejar suas aulas!</p>
-                    <Button variant="outline" className="mt-8 border-emerald-200 text-[#2E7D32] hover:bg-emerald-50 rounded-xl">
-                      Ver Próximos Eventos
-                    </Button>
+
+                    <div className="space-y-1">
+                      {dayEvents.map((event) => (
+                        <div 
+                          key={event.id}
+                          className={cn(
+                            "text-[10px] p-1.5 rounded-md border leading-tight truncate font-medium",
+                            event.type === 'holiday' 
+                              ? "bg-orange-50 border-orange-200 text-orange-700" 
+                              : event.type === 'meeting' 
+                                ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                                : "bg-blue-50 border-blue-200 text-blue-700"
+                          )}
+                          title={event.title}
+                        >
+                          {event.title}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Legenda Opcional */}
+        <div className="flex flex-wrap gap-6 p-4 bg-white rounded-xl shadow-sm border text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-orange-400" />
+            <span className="text-gray-600 font-medium">Feriados</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-emerald-400" />
+            <span className="text-gray-600 font-medium">Reuniões</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-blue-400" />
+            <span className="text-gray-600 font-medium">Prazos e Outros</span>
           </div>
         </div>
       </main>
