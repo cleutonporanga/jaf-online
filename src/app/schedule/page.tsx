@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -53,13 +52,14 @@ export default function SchedulePage() {
   const isAdmin = user?.role === 'administrador';
 
   const coursesQuery = useMemoFirebase(() => {
+    if (!db) return null;
     return query(collection(db, 'courses'));
   }, [db]);
 
   const { data: courses, isLoading: loadingCourses } = useCollection(coursesQuery);
 
   const scheduleQuery = useMemoFirebase(() => {
-    if (!selectedCourseId) return null;
+    if (!selectedCourseId || !db) return null;
     return query(collection(db, 'schedules'), where('courseId', '==', selectedCourseId));
   }, [db, selectedCourseId]);
 
@@ -67,7 +67,7 @@ export default function SchedulePage() {
 
   const handleCreateSlot = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCourseId || !newItem.subject || !newItem.startTime) return;
+    if (!db || !selectedCourseId || !newItem.subject || !newItem.startTime) return;
 
     setLoading(true);
     try {
@@ -91,7 +91,7 @@ export default function SchedulePage() {
   };
 
   const handleDeleteSlot = async (id: string) => {
-    if (!isAdmin) return;
+    if (!db || !isAdmin) return;
     try {
       await deleteDoc(doc(db, 'schedules', id));
       toast({ title: "Aula Removida" });

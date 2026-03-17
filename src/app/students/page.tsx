@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -53,6 +52,7 @@ export default function StudentsPage() {
   const isAdmin = user?.role === 'administrador';
 
   const studentsQuery = useMemoFirebase(() => {
+    if (!db) return null;
     return query(collection(db, 'students'));
   }, [db]);
 
@@ -65,7 +65,7 @@ export default function StudentsPage() {
 
   const handleCreateStudent = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newStudent.firstName || !newStudent.lastName || !newStudent.enrollmentNumber) {
+    if (!db || !newStudent.firstName || !newStudent.lastName || !newStudent.enrollmentNumber) {
       toast({
         variant: "destructive",
         title: "Campos obrigatórios",
@@ -109,7 +109,7 @@ export default function StudentsPage() {
   };
 
   const handleDeleteStudent = async (studentId: string) => {
-    if (!confirm("Tem certeza que deseja excluir este aluno? Esta ação não pode ser desfeita.")) return;
+    if (!db || !confirm("Tem certeza que deseja excluir este aluno? Esta ação não pode ser desfeita.")) return;
     
     try {
       await deleteDoc(doc(db, 'students', studentId));

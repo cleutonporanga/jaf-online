@@ -87,12 +87,14 @@ export default function ClassesPage() {
   const isAdmin = user?.role === 'administrador';
 
   const coursesQuery = useMemoFirebase(() => {
+    if (!db) return null;
     return query(collection(db, 'courses'));
   }, [db]);
 
   const { data: courses, isLoading: loadingCourses } = useCollection(coursesQuery);
 
   const professorsQuery = useMemoFirebase(() => {
+    if (!db) return null;
     return query(collection(db, 'userProfiles'));
   }, [db]);
 
@@ -100,6 +102,7 @@ export default function ClassesPage() {
   const activeProfessors = professors?.filter(p => p.role === 'professor') || [];
 
   const studentsQuery = useMemoFirebase(() => {
+    if (!db) return null;
     return query(collection(db, 'students'));
   }, [db]);
 
@@ -112,7 +115,7 @@ export default function ClassesPage() {
 
   const handleCreateCourse = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCourse.name || !newCourse.gradeLevel || !newCourse.professorId) {
+    if (!db || !newCourse.name || !newCourse.gradeLevel || !newCourse.professorId) {
       toast({
         variant: "destructive",
         title: "Campos obrigatórios",
@@ -156,7 +159,7 @@ export default function ClassesPage() {
 
   const handleUpdateCourse = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!courseToEdit || !courseToEdit.name || !courseToEdit.gradeLevel) return;
+    if (!db || !courseToEdit || !courseToEdit.name || !courseToEdit.gradeLevel) return;
 
     setLoading(true);
     try {
@@ -186,7 +189,7 @@ export default function ClassesPage() {
   };
 
   const handleEnrollStudent = (studentId: string) => {
-    if (!selectedCourseId) return;
+    if (!db || !selectedCourseId) return;
 
     setEnrollLoading(true);
     try {
@@ -248,7 +251,7 @@ export default function ClassesPage() {
   };
 
   const handleDeleteCourse = () => {
-    if (!courseToDelete) return;
+    if (!db || !courseToDelete) return;
 
     const courseRef = doc(db, 'courses', courseToDelete.id);
     deleteDocumentNonBlocking(courseRef);
