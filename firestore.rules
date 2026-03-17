@@ -53,7 +53,7 @@ service cloud.firestore {
 
     match /schedules/{scheduleId} {
       allow list, get: if isSignedIn();
-      allow create, update: if isAdmin(); // Apenas administradores editam horário
+      allow create, update: if isAdmin(); 
       allow delete: if isAdmin();
     }
 
@@ -85,6 +85,11 @@ service cloud.firestore {
       allow list, get: if isSignedIn();
       allow create, update: if isStaff();
       allow delete: if isAdmin();
+    }
+
+    match /schoolSettings/{settingId} {
+      allow get, list: if isSignedIn();
+      allow write: if isAdmin();
     }
   }
 }

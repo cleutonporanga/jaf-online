@@ -211,6 +211,17 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "studentId", "type", "description", "generatedDate", "createdAt", "updatedAt"]
+    },
+    "GeneralNotice": {
+      "title": "GeneralNotice",
+      "type": "object",
+      "description": "A global school notice shown on the dashboard.",
+      "properties": {
+        "text": { "type": "string" },
+        "updatedBy": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["text"]
     }
   },
   "auth": {
@@ -291,6 +302,15 @@
           "schema": { "$ref": "#/backend/entities/StudentHighlight" },
           "description": "AI student highlights.",
           "params": [{ "name": "highlightId" }]
+        }
+      },
+      {
+        "path": "/schoolSettings/{settingId}",
+        "definition": {
+          "entityName": "GeneralNotice",
+          "schema": { "$ref": "#/backend/entities/GeneralNotice" },
+          "description": "Global settings like the general notice.",
+          "params": [{ "name": "settingId" }]
         }
       }
     ]
