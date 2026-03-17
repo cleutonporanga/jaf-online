@@ -10,7 +10,10 @@ import {
   TrendingUp, 
   AlertCircle,
   Loader2,
-  Edit2
+  Edit2,
+  Plus,
+  Trash2,
+  Settings2
 } from 'lucide-react';
 import { 
   Dialog, 
@@ -22,11 +25,21 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { collection, query, limit, where, doc, serverTimestamp } from 'firebase/firestore';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { collection, query, limit, where, doc, serverTimestamp, orderBy } from 'firebase/firestore';
+import { setDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useAuth } from '@/lib/auth-store';
 import { useToast } from '@/hooks/use-toast';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function Dashboard() {
   const db = useFirestore();
@@ -35,7 +48,10 @@ export default function Dashboard() {
   const { toast } = useToast();
   
   const [noticeDialogOpen, setNoticeDialogOpen] = useState(false);
+  const [actionsDialogOpen, setActionsDialogOpen] = useState(false);
   const [newNoticeText, setNewNoticeText] = useState("");
+  
+  const [newAction, setNewAction] = useState({ text: "", type: "info" });
 
   const isAdmin = appUser?.role === 'administrador';
 
@@ -47,25 +63,28 @@ export default function Dashboard() {
 
   const studentsQuery = useMemoFirebase(() => {
     if (!firebaseUser || !appUser) return null;
-    // For prototype simplicity, staff can see all students. 
-    // In production, we would filter by courseIds.
     return query(collection(db, 'students'));
   }, [db, firebaseUser, appUser]);
 
   const eventsQuery = useMemoFirebase(() => {
-    return query(collection(db, 'schoolEvents'), limit(5));
+    return query(collection(db, 'schoolEvents'), orderBy('startDate', 'asc'), limit(5));
   }, [db]);
 
   const noticeDocRef = useMemoFirebase(() => {
     return doc(db, 'schoolSettings', 'generalNotice');
   }, [db]);
 
+  const actionsQuery = useMemoFirebase(() => {
+    return query(collection(db, 'recommendedActions'), orderBy('createdAt', 'desc'));
+  }, [db]);
+
   const { data: courses, isLoading: loadingCourses } = useCollection(coursesQuery);
   const { data: students, isLoading: loadingStudents } = useCollection(studentsQuery);
   const { data: events, isLoading: loadingEvents } = useCollection(eventsQuery);
   const { data: noticeData, isLoading: loadingNotice } = useDoc(noticeDocRef);
+  const { data: recommendedActions, isLoading: loadingActions } = useCollection(actionsQuery);
 
-  const isLoading = authLoading || loadingCourses || loadingStudents || loadingEvents || loadingNotice;
+  const isLoading = authLoading || loadingCourses || loadingStudents || loadingEvents || loadingNotice || loadingActions;
 
   const handleUpdateNotice = () => {
     if (!isAdmin || !newNoticeText.trim()) return;
@@ -82,6 +101,34 @@ export default function Dashboard() {
       className: "bg-[#E8F5E9] border-[#4CAF50] text-[#2E7D32]",
     });
     setNoticeDialogOpen(false);
+  };
+
+  const handleAddAction = () => {
+    if (!isAdmin || !newAction.text.trim()) return;
+
+    const actionsRef = collection(db, 'recommendedActions');
+    addDocumentNonBlocking(actionsRef, {
+      text: newAction.text,
+      type: newAction.type,
+      createdAt: serverTimestamp()
+    });
+
+    toast({
+      title: "Ação Adicionada",
+      description: "A recomendação foi salva com sucesso.",
+      className: "bg-[#E8F5E9] border-[#4CAF50] text-[#2E7D32]",
+    });
+    setNewAction({ text: "", type: "info" });
+  };
+
+  const handleDeleteAction = (id: string) => {
+    if (!isAdmin) return;
+    const actionRef = doc(db, 'recommendedActions', id);
+    deleteDocumentNonBlocking(actionRef);
+    toast({
+      title: "Ação Removida",
+      description: "A recomendação foi excluída.",
+    });
   };
 
   const openNoticeEditor = () => {
@@ -182,13 +229,28 @@ export default function Dashboard() {
               </Card>
 
               <Card className="border-none shadow-md">
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-lg text-[#2E7D32]">Ações Recomendadas</CardTitle>
+                  {isAdmin && (
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 text-[#4CAF50]"
+                      onClick={() => setActionsDialogOpen(true)}
+                    >
+                      <Settings2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <ActionItem text="Registrar frequência semanal" type="warning" />
-                  <ActionItem text="Lançar novas notas do bimestre" type="info" />
-                  <ActionItem text="Atualizar perfil institucional" type="info" />
+                  {recommendedActions?.map(action => (
+                    <ActionItem key={action.id} text={action.text} type={action.type} />
+                  ))}
+                  {(!recommendedActions || recommendedActions.length === 0) && (
+                    <div className="text-center py-4">
+                       <p className="text-xs text-muted-foreground italic">Nenhuma ação recomendada no momento.</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -259,34 +321,106 @@ export default function Dashboard() {
         </div>
 
         {isAdmin && (
-          <Dialog open={noticeDialogOpen} onOpenChange={setNoticeDialogOpen}>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle className="text-[#2E7D32]">Editar Aviso Geral</DialogTitle>
-              </DialogHeader>
-              <div className="py-4 space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Este aviso será exibido no painel de controle de todos os professores, alunos e funcionários.
-                </p>
-                <Textarea 
-                  placeholder="Digite o novo comunicado aqui..."
-                  className="min-h-[150px] text-sm"
-                  value={newNoticeText}
-                  onChange={(e) => setNewNoticeText(e.target.value)}
-                />
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setNoticeDialogOpen(false)}>Cancelar</Button>
-                <Button 
-                  className="bg-[#4CAF50] hover:bg-[#43a047]"
-                  onClick={handleUpdateNotice}
-                  disabled={!newNoticeText.trim()}
-                >
-                  Publicar Aviso
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <>
+            <Dialog open={noticeDialogOpen} onOpenChange={setNoticeDialogOpen}>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle className="text-[#2E7D32]">Editar Aviso Geral</DialogTitle>
+                </DialogHeader>
+                <div className="py-4 space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Este aviso será exibido no painel de controle de todos os professores, alunos e funcionários.
+                  </p>
+                  <Textarea 
+                    placeholder="Digite o novo comunicado aqui..."
+                    className="min-h-[150px] text-sm"
+                    value={newNoticeText}
+                    onChange={(e) => setNewNoticeText(e.target.value)}
+                  />
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setNoticeDialogOpen(false)}>Cancelar</Button>
+                  <Button 
+                    className="bg-[#4CAF50] hover:bg-[#43a047]"
+                    onClick={handleUpdateNotice}
+                    disabled={!newNoticeText.trim()}
+                  >
+                    Publicar Aviso
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={actionsDialogOpen} onOpenChange={setActionsDialogOpen}>
+              <DialogContent className="sm:max-w-[600px]">
+                <DialogHeader>
+                  <DialogTitle className="text-[#2E7D32]">Gerenciar Ações Recomendadas</DialogTitle>
+                </DialogHeader>
+                <div className="py-4 space-y-6">
+                  <div className="space-y-4 border p-4 rounded-xl bg-gray-50">
+                    <h4 className="text-sm font-bold text-[#2E7D32]">Nova Recomendação</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="md:col-span-2 space-y-2">
+                        <Label>Texto da Ação</Label>
+                        <Input 
+                          placeholder="Ex: Registrar frequência..."
+                          value={newAction.text}
+                          onChange={e => setNewAction({...newAction, text: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Tipo</Label>
+                        <Select value={newAction.type} onValueChange={v => setNewAction({...newAction, type: v})}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="info">Informativo (Verde)</SelectItem>
+                            <SelectItem value="warning">Alerta (Laranja)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <Button 
+                      className="w-full bg-[#4CAF50] hover:bg-[#43a047] gap-2"
+                      onClick={handleAddAction}
+                      disabled={!newAction.text.trim()}
+                    >
+                      <Plus className="h-4 w-4" />
+                      Adicionar Recomendação
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-bold text-gray-700">Ações Atuais</h4>
+                    <ScrollArea className="h-64 rounded-xl border p-2">
+                      <div className="space-y-2">
+                        {recommendedActions?.map(action => (
+                          <div key={action.id} className="flex items-center justify-between p-3 bg-white border rounded-lg group">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-2 h-2 rounded-full ${action.type === 'warning' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                              <span className="text-xs font-medium">{action.text}</span>
+                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => handleDeleteAction(action.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                        {(!recommendedActions || recommendedActions.length === 0) && (
+                          <p className="text-center text-muted-foreground py-8 text-xs">Nenhuma ação cadastrada.</p>
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </>
         )}
       </main>
     </div>
@@ -311,11 +445,11 @@ function StatCard({ title, value, icon: Icon, color }: { title: string, value: s
   );
 }
 
-function ActionItem({ text, type }: { text: string, type: 'warning' | 'info' }) {
+function ActionItem({ text, type }: { text: string, type: 'warning' | 'info' | any }) {
   return (
-    <div className={`p-3 rounded-lg flex items-center gap-3 ${type === 'warning' ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'}`}>
-      <AlertCircle className="h-4 w-4" />
-      <span className="text-xs font-bold">{text}</span>
+    <div className={`p-3 rounded-lg flex items-center gap-3 animate-in fade-in slide-in-from-left-2 ${type === 'warning' ? 'bg-amber-50 text-amber-700 border border-amber-100' : 'bg-emerald-50 text-emerald-700 border border-emerald-100'}`}>
+      <AlertCircle className="h-4 w-4 shrink-0" />
+      <span className="text-xs font-bold leading-tight">{text}</span>
     </div>
   );
 }

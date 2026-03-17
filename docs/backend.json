@@ -239,6 +239,18 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["text"]
+    },
+    "RecommendedAction": {
+      "title": "RecommendedAction",
+      "type": "object",
+      "description": "Recommended pedagogical or administrative actions for staff.",
+      "properties": {
+        "id": { "type": "string" },
+        "text": { "type": "string" },
+        "type": { "type": "string", "enum": ["warning", "info"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "text", "type"]
     }
   },
   "auth": {
@@ -337,6 +349,15 @@
           "schema": { "$ref": "#/backend/entities/GeneralNotice" },
           "description": "Global settings like the general notice.",
           "params": [{ "name": "settingId" }]
+        }
+      },
+      {
+        "path": "/recommendedActions/{actionId}",
+        "definition": {
+          "entityName": "RecommendedAction",
+          "schema": { "$ref": "#/backend/entities/RecommendedAction" },
+          "description": "List of recommended actions.",
+          "params": [{ "name": "actionId" }]
         }
       }
     ]
