@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -10,11 +9,9 @@ import {
   MoreVertical, 
   UserPlus, 
   FileText,
-  Clock,
   Plus,
   Loader2,
-  Calendar,
-  Check
+  Calendar
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -170,10 +167,6 @@ export default function ClassesPage() {
   const openEnrollDialog = (courseId: string) => {
     setSelectedCourseId(courseId);
     setIsEnrollDialogOpen(true);
-  };
-
-  const navigateToDiary = (courseId: string) => {
-    router.push(`/attendance?classId=${courseId}`);
   };
 
   return (
@@ -333,13 +326,6 @@ export default function ClassesPage() {
                         </Button>
                       )}
                     </div>
-
-                    <Button 
-                      onClick={() => navigateToDiary(c.id)}
-                      className="w-full bg-[#4CAF50] hover:bg-[#43a047] h-10 shadow-sm"
-                    >
-                      Acessar Diário de Classe
-                    </Button>
                   </CardContent>
                 </Card>
               );
