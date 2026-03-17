@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useRef } from 'react';
@@ -48,12 +49,13 @@ export function Navbar() {
           const userSnap = await getDoc(userRef);
           
           let role: UserRole = 'professor';
-          // Check for exact email match for admin
-          if (firebaseUser.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+          const email = firebaseUser.email?.toLowerCase();
+
+          if (email === ADMIN_EMAIL.toLowerCase()) {
             role = 'administrador';
-          } else if (firebaseUser.email === STUDENT_EMAIL) {
+          } else if (email === STUDENT_EMAIL) {
             role = 'aluno';
-          } else if (firebaseUser.email === TEACHER_EMAIL) {
+          } else if (email === TEACHER_EMAIL) {
             role = 'professor';
           }
 
@@ -61,8 +63,7 @@ export function Navbar() {
             const data = userSnap.data();
             const currentRoleInDb = data.role as UserRole;
             
-            // Force role update if it's the admin email
-            if (firebaseUser.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() && currentRoleInDb !== 'administrador') {
+            if (email === ADMIN_EMAIL.toLowerCase() && currentRoleInDb !== 'administrador') {
               await setDoc(userRef, { role: 'administrador', updatedAt: serverTimestamp() }, { merge: true });
               role = 'administrador';
             } else {
@@ -71,7 +72,7 @@ export function Navbar() {
           } else {
             await setDoc(userRef, {
               id: firebaseUser.uid,
-              name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuário',
+              name: firebaseUser.displayName || email?.split('@')[0] || 'Usuário',
               email: firebaseUser.email,
               role: role,
               createdAt: serverTimestamp(),
@@ -82,8 +83,6 @@ export function Navbar() {
           setAuth(firebaseUser, role);
         } catch (error) {
           console.error("Erro ao sincronizar perfil:", error);
-          // Fallback if not already authenticated
-          if (!isAuthenticated) setAuth(firebaseUser, 'professor');
         } finally {
           setSyncing(false);
           syncInProgress.current = false;
@@ -94,7 +93,7 @@ export function Navbar() {
     };
 
     syncUser();
-  }, [firebaseUser?.uid, isUserLoading, db, isAuthenticated]);
+  }, [firebaseUser?.uid, isUserLoading, db, setAuth, logout, isAuthenticated]);
 
   const handleLogout = async () => {
     if (firebaseAuth) {

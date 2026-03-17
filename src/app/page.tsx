@@ -44,8 +44,8 @@ export default function Home() {
     if (!auth) {
       toast({
         variant: "destructive",
-        title: "Sistema Indisponível",
-        description: "O serviço de autenticação ainda não foi carregado. Tente novamente em instantes."
+        title: "Iniciando sistema...",
+        description: "Os serviços de segurança estão carregando. Tente novamente em 2 segundos."
       });
       return;
     }
@@ -128,7 +128,7 @@ export default function Home() {
           
           <div className="text-center">
             <p className="text-xs text-gray-400">
-              Sistema de Superintendência Escolar
+              Escola Joaquim Antônio Filho | 2026
             </p>
           </div>
         </CardContent>
