@@ -120,7 +120,7 @@ export function Navbar() {
         <div className="container mx-auto flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight font-headline">Escola JAF</h1>
-            <p className="text-xs opacity-90 font-medium">Sistema de Gestão Escolar | 2024</p>
+            <p className="text-xs opacity-90 font-medium">Escola Joaquim Antônio Filho | Buritizal</p>
           </div>
           
           {isAuthenticated && (
