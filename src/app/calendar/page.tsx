@@ -66,6 +66,7 @@ export default function CalendarPage() {
     title: '',
     type: 'Evento',
     date: '',
+    time: '08:00',
     description: ''
   });
 
@@ -123,17 +124,19 @@ export default function CalendarPage() {
 
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!db || !newEvent.title || !newEvent.date) return;
+    if (!db || !newEvent.title || !newEvent.date || !newEvent.time) return;
 
     setLoading(true);
     try {
       const colRef = collection(db, 'schoolEvents');
+      const startDateTime = new Date(`${newEvent.date}T${newEvent.time}`).toISOString();
+      
       addDocumentNonBlocking(colRef, {
         title: newEvent.title,
         type: newEvent.type,
         description: newEvent.description,
-        startDate: new Date(newEvent.date).toISOString(),
-        endDate: new Date(newEvent.date).toISOString(),
+        startDate: startDateTime,
+        endDate: startDateTime,
         createdByUserId: appUser?.id || 'admin',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -141,11 +144,11 @@ export default function CalendarPage() {
 
       toast({
         title: "Evento Criado",
-        description: "O calendário oficial foi atualizado.",
+        description: "O calendário oficial foi atualizado com o horário definido.",
         className: "bg-[#E8F5E9] border-[#4CAF50] text-[#2E7D32]",
       });
       setIsCreateDialogOpen(false);
-      setNewEvent({ title: '', type: 'Evento', date: format(new Date(), 'yyyy-MM-dd'), description: '' });
+      setNewEvent({ title: '', type: 'Evento', date: format(new Date(), 'yyyy-MM-dd'), time: '08:00', description: '' });
     } catch (error) {
       console.error(error);
     } finally {
@@ -205,19 +208,28 @@ export default function CalendarPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Categoria</Label>
-                      <Select value={newEvent.type} onValueChange={v => setNewEvent({...newEvent, type: v})}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Feriado">Feriado</SelectItem>
-                          <SelectItem value="Reunião">Reunião</SelectItem>
-                          <SelectItem value="Evento">Evento</SelectItem>
-                          <SelectItem value="Aniversário">Aniversário</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Label>Horário</Label>
+                      <Input 
+                        type="time"
+                        value={newEvent.time}
+                        onChange={e => setNewEvent({...newEvent, time: e.target.value})}
+                        required
+                      />
                     </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Categoria</Label>
+                    <Select value={newEvent.type} onValueChange={v => setNewEvent({...newEvent, type: v})}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Feriado">Feriado</SelectItem>
+                        <SelectItem value="Reunião">Reunião</SelectItem>
+                        <SelectItem value="Evento">Evento</SelectItem>
+                        <SelectItem value="Aniversário">Aniversário</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Descrição (Opcional)</Label>
@@ -323,7 +335,7 @@ export default function CalendarPage() {
                             "text-[10px] p-1.5 rounded-md border leading-tight truncate font-bold",
                             getTypeStyles(event.type)
                           )}
-                          title={event.title}
+                          title={`${event.title}${event.startDate ? ` - ${format(new Date(event.startDate), 'HH:mm')}` : ''}`}
                         >
                           {event.title}
                         </div>
