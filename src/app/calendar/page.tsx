@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -41,17 +40,17 @@ export default function CalendarPage() {
           {/* Lado Esquerdo: O Calendário */}
           <div className="space-y-6">
             <Card className="border-none shadow-xl bg-white overflow-hidden rounded-2xl">
-              <CardContent className="p-4">
+              <CardContent className="p-4 flex justify-center">
                 <Calendar
                   mode="single"
                   selected={date}
                   onSelect={setDate}
                   locale={ptBR}
-                  className="w-full"
+                  className="w-full max-w-sm"
                   classNames={{
                     day_selected: "bg-[#4CAF50] text-white hover:bg-[#4CAF50] focus:bg-[#4CAF50] rounded-lg",
                     day_today: "bg-emerald-50 text-[#2E7D32] font-bold border border-emerald-200 rounded-lg",
-                    head_cell: "text-emerald-700 font-bold uppercase text-[10px]",
+                    head_cell: "text-emerald-700 font-bold uppercase text-[10px] w-9 text-center",
                   }}
                 />
               </CardContent>
