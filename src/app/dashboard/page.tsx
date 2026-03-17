@@ -10,19 +10,17 @@ import {
   Loader2 
 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, orderBy, limit, where } from 'firebase/firestore';
+import { collection, query, limit, where } from 'firebase/firestore';
 
 export default function Dashboard() {
   const db = useFirestore();
   const { user, isUserLoading: authLoading } = useUser();
   
-  // Consulta filtrada para o professor logado
   const coursesQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(collection(db, 'courses'), where('professorId', '==', user.uid));
   }, [db, user]);
 
-  // Consulta filtrada para alunos que o professor ensina
   const studentsQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(collection(db, 'students'), where('professorIds', 'array-contains', user.uid));
@@ -30,11 +28,11 @@ export default function Dashboard() {
 
   const eventsQuery = useMemoFirebase(() => {
     if (!user) return null;
+    // Removed orderBy to avoid index requirement during initial prototype
     return query(
       collection(db, 'schoolEvents'), 
       where('associatedCourseProfessorIds', 'array-contains', user.uid),
-      orderBy('startDate', 'asc'), 
-      limit(3)
+      limit(5)
     );
   }, [db, user]);
 
@@ -140,9 +138,9 @@ export default function Dashboard() {
                   <ActionItem text="Registrar frequência semanal" type="warning" />
                   <ActionItem text="Lançar novas notas do bimestre" type="info" />
                   <ActionItem text="Atualizar perfil institucional" type="info" />
-                </CardContent>
-              </Card>
-            </div>
+                </ActionItem>
+              </CardContent>
+            </Card>
           </div>
 
           <div className="space-y-8">
@@ -155,7 +153,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {events?.map(event => {
-                  const date = new Date(event.startDate);
+                  const date = event.startDate ? new Date(event.startDate) : new Date();
                   const day = date.getDate().toString().padStart(2, '0');
                   const month = date.toLocaleString('pt-BR', { month: 'short' }).toUpperCase();
                   

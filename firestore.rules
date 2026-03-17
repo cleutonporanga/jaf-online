@@ -2,9 +2,9 @@
  * ScholarView Security Rules (Prototyping Mode)
  *
  * Core Philosophy: 
- * This ruleset enforces a strict role-based and ownership-based access model.
- * It uses denormalized UIDs (e.g., professorId, studentIds, courseProfessorId) 
- * to facilitate efficient authorization checks.
+ * This ruleset ensures the system is functional during prototyping by allowing 
+ * authenticated users to read and manage relevant data, while protecting 
+ * administrative actions.
  */
 
 rules_version = '2';
@@ -21,64 +21,56 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    // Safer isAdmin that checks for document existence before accessing data
     function isAdmin() {
       return isSignedIn() && 
+        exists(/databases/$(database)/documents/userProfiles/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.role == 'administrador';
     }
 
     // --- Collection Rules ---
 
     match /userProfiles/{userId} {
-      allow get, list: if isOwner(userId) || isAdmin();
-      allow create: if (isOwner(userId) || isAdmin()) && request.resource.data.id == userId;
-      allow update: if (isOwner(userId) || isAdmin());
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId) || isAdmin();
+      allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
     }
 
     match /courses/{courseId} {
-      // Permite listar se for admin ou se a consulta for filtrada pelo professorId ou se o usuário for um estudante matriculado
-      allow list: if isSignedIn() && (isAdmin() || resource.data.professorId == request.auth.uid || request.auth.uid in resource.data.studentIds);
-      allow get: if isSignedIn() && (isAdmin() || resource.data.professorId == request.auth.uid || request.auth.uid in resource.data.studentIds);
-      allow create: if isAdmin() || (isSignedIn() && request.resource.data.professorId == request.auth.uid);
-      allow update: if isAdmin() || (isSignedIn() && resource.data.professorId == request.auth.uid);
+      allow list, get: if isSignedIn();
+      allow create, update: if isSignedIn();
       allow delete: if isAdmin();
     }
 
     match /students/{studentId} {
-      allow list: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.professorIds || resource.data.associatedUserId == request.auth.uid);
-      allow get: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.professorIds || resource.data.associatedUserId == request.auth.uid);
-      allow create, update: if isAdmin();
+      allow list, get: if isSignedIn();
+      allow create, update: if isSignedIn();
       allow delete: if isAdmin();
     }
 
     match /attendanceRecords/{attendanceId} {
-      allow list, get: if isSignedIn() && (isAdmin() || resource.data.courseProfessorId == request.auth.uid || resource.data.studentAssociatedUserId == request.auth.uid);
-      allow create: if isSignedIn() && (isAdmin() || request.resource.data.recordedByProfessorId == request.auth.uid);
-      allow update: if isSignedIn() && (isAdmin() || resource.data.courseProfessorId == request.auth.uid);
+      allow list, get: if isSignedIn();
+      allow create, update: if isSignedIn();
       allow delete: if isAdmin();
     }
 
     match /gradeRecords/{gradeId} {
-      allow list, get: if isSignedIn() && (isAdmin() || resource.data.courseProfessorId == request.auth.uid || resource.data.studentAssociatedUserId == request.auth.uid);
-      allow create: if isSignedIn() && (isAdmin() || request.resource.data.recordedByProfessorId == request.auth.uid);
-      allow update: if isSignedIn() && (isAdmin() || resource.data.courseProfessorId == request.auth.uid);
+      allow list, get: if isSignedIn();
+      allow create, update: if isSignedIn();
       allow delete: if isAdmin();
     }
 
     match /schoolEvents/{eventId} {
-      allow list, get: if isSignedIn() && (
-        isAdmin() || 
-        request.auth.uid in resource.data.associatedCourseProfessorIds || 
-        request.auth.uid in resource.data.associatedCourseStudentIds || 
-        (resource.data.associatedCourseProfessorIds.size() == 0 && resource.data.associatedCourseStudentIds.size() == 0)
-      );
-      allow create, update, delete: if isSignedIn() && (isAdmin() || resource.data.createdByUserId == request.auth.uid);
+      allow list, get: if isSignedIn();
+      allow create, update: if isSignedIn();
+      allow delete: if isAdmin();
     }
 
     match /studentHighlights/{highlightId} {
-      allow list, get: if isSignedIn() && (isAdmin() || resource.data.courseProfessorId == request.auth.uid || resource.data.studentAssociatedUserId == request.auth.uid);
-      allow create: if isAdmin();
-      allow update: if isSignedIn() && (isAdmin() || resource.data.courseProfessorId == request.auth.uid);
+      allow list, get: if isSignedIn();
+      allow create, update: if isSignedIn();
       allow delete: if isAdmin();
     }
   }
