@@ -13,6 +13,10 @@ export const metadata: Metadata = {
     statusBarStyle: 'default',
     title: 'JAF Online',
   },
+  icons: {
+    icon: '/icon-192x192.png',
+    apple: '/icon-192x192.png',
+  },
 };
 
 export default function RootLayout({
@@ -26,8 +30,6 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-        <link rel="icon" href="/icon-192x192.png" />
-        <link rel="apple-touch-icon" href="/icon-192x192.png" />
         <meta name="theme-color" content="#4CAF50" />
       </head>
       <body className="font-body antialiased min-h-screen bg-background flex flex-col">
