@@ -35,7 +35,7 @@ function GradesContent() {
   const { user: appUser } = useAuth();
   const { toast } = useToast();
   const [selectedClassId, setSelectedClassId] = useState<string>("");
-  const [gradesState, setGradesState] = useState<Record<string, { v1: string, v2: string, work: string }>>({});
+  const [gradesState, setGradesState] = useState<Record<string, { b1: string, b2: string, b3: string, b4: string }>>({});
   const [isExporting, setIsExporting] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -76,23 +76,24 @@ function GradesContent() {
 
   useEffect(() => {
     if (existingGrades && students && mounted) {
-      const newState: Record<string, { v1: string, v2: string, work: string }> = {};
+      const newState: Record<string, { b1: string, b2: string, b3: string, b4: string }> = {};
       existingGrades.forEach(g => {
-        if (!newState[g.studentId]) newState[g.studentId] = { v1: '', v2: '', work: '' };
-        if (g.activityName === 'Avaliação 1') newState[g.studentId].v1 = g.value.toString();
-        if (g.activityName === 'Avaliação 2') newState[g.studentId].v2 = g.value.toString();
-        if (g.activityName === 'Trabalho') newState[g.studentId].work = g.value.toString();
+        if (!newState[g.studentId]) newState[g.studentId] = { b1: '', b2: '', b3: '', b4: '' };
+        if (g.activityName === '1º Bimestre') newState[g.studentId].b1 = g.value.toString();
+        if (g.activityName === '2º Bimestre') newState[g.studentId].b2 = g.value.toString();
+        if (g.activityName === '3º Bimestre') newState[g.studentId].b3 = g.value.toString();
+        if (g.activityName === '4º Bimestre') newState[g.studentId].b4 = g.value.toString();
       });
       setGradesState(newState);
     }
   }, [existingGrades, students, mounted]);
 
-  const handleGradeChange = (studentId: string, field: 'v1' | 'v2' | 'work', value: string) => {
+  const handleGradeChange = (studentId: string, field: 'b1' | 'b2' | 'b3' | 'b4', value: string) => {
     if (isReadOnly) return;
     if (value === '' || /^\d*[.,]?\d*$/.test(value)) {
       setGradesState(prev => ({
         ...prev,
-        [studentId]: { ... (prev[studentId] || { v1: '', v2: '', work: '' }), [field]: value }
+        [studentId]: { ... (prev[studentId] || { b1: '', b2: '', b3: '', b4: '' }), [field]: value }
       }));
     }
   };
@@ -100,11 +101,15 @@ function GradesContent() {
   const calculateAverage = (studentId: string) => {
     const g = gradesState[studentId];
     if (!g) return "-";
-    const v1 = parseFloat(g.v1.replace(',', '.')) || 0;
-    const v2 = parseFloat(g.v2.replace(',', '.')) || 0;
-    const work = parseFloat(g.work.replace(',', '.')) || 0;
-    if (!g.v1 && !g.v2 && !g.work) return "-";
-    return ((v1 + v2 + work) / 3).toFixed(1);
+    const b1 = parseFloat(g.b1.replace(',', '.')) || 0;
+    const b2 = parseFloat(g.b2.replace(',', '.')) || 0;
+    const b3 = parseFloat(g.b3.replace(',', '.')) || 0;
+    const b4 = parseFloat(g.b4.replace(',', '.')) || 0;
+    
+    const hasAnyGrade = g.b1 !== '' || g.b2 !== '' || g.b3 !== '' || g.b4 !== '';
+    if (!hasAnyGrade) return "-";
+    
+    return ((b1 + b2 + b3 + b4) / 4).toFixed(1);
   };
 
   const handleSave = () => {
@@ -132,14 +137,15 @@ function GradesContent() {
         }, { merge: true });
       };
 
-      saveGrade(g.v1, 'Avaliação 1');
-      saveGrade(g.v2, 'Avaliação 2');
-      saveGrade(g.work, 'Trabalho');
+      saveGrade(g.b1, '1º Bimestre');
+      saveGrade(g.b2, '2º Bimestre');
+      saveGrade(g.b3, '3º Bimestre');
+      saveGrade(g.b4, '4º Bimestre');
     });
 
     toast({
       title: "Notas Atualizadas",
-      description: "As notas foram salvas com sucesso pela administração.",
+      description: "As notas bimestrais foram salvas com sucesso.",
       className: "bg-[#E8F5E9] border-[#4CAF50] text-[#2E7D32]",
     });
   };
@@ -151,14 +157,14 @@ function GradesContent() {
     setIsExporting(true);
     toast({
       title: "Gerando Boletins",
-      description: `Preparando boletins com cabeçalho oficial da Escola Joaquim Antônio Filho para a turma ${className}...`,
+      description: `Preparando boletins anuais para a turma ${className}...`,
     });
 
     setTimeout(() => {
       setIsExporting(false);
       toast({
         title: "Boletins Exportados",
-        description: `O arquivo PDF contendo os boletins individuais com cabeçalho completo foi baixado com sucesso.`,
+        description: `O arquivo PDF contendo os boletins anuais foi baixado com sucesso.`,
         className: "bg-[#E8F5E9] border-[#4CAF50] text-[#2E7D32]",
       });
     }, 2500);
@@ -175,7 +181,7 @@ function GradesContent() {
           <div>
             <h1 className="text-3xl font-bold text-[#2E7D32] font-headline">Gestão de Notas</h1>
             <p className="text-muted-foreground">
-              {isReadOnly ? "Visualizando desempenho acadêmico oficial." : "Lançamento de notas exclusivo para administração."}
+              {isReadOnly ? "Visualizando desempenho acadêmico oficial." : "Lançamento de notas bimestrais exclusivo para administração."}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -228,9 +234,10 @@ function GradesContent() {
                 <TableHeader className="bg-gray-50">
                   <TableRow>
                     <TableHead className="w-[300px]">Nome do Aluno</TableHead>
-                    <TableHead className="text-center">Avaliação 1</TableHead>
-                    <TableHead className="text-center">Avaliação 2</TableHead>
-                    <TableHead className="text-center">Trabalho</TableHead>
+                    <TableHead className="text-center">1º Bimestre</TableHead>
+                    <TableHead className="text-center">2º Bimestre</TableHead>
+                    <TableHead className="text-center">3º Bimestre</TableHead>
+                    <TableHead className="text-center">4º Bimestre</TableHead>
                     <TableHead className="text-center bg-emerald-50 text-[#2E7D32] font-bold">Média Final</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -245,8 +252,8 @@ function GradesContent() {
                             disabled={isReadOnly} 
                             className="w-20 mx-auto text-center h-8" 
                             placeholder="-" 
-                            value={gradesState[student.id]?.v1 || ''}
-                            onChange={(e) => handleGradeChange(student.id, 'v1', e.target.value)}
+                            value={gradesState[student.id]?.b1 || ''}
+                            onChange={(e) => handleGradeChange(student.id, 'b1', e.target.value)}
                           />
                         </TableCell>
                         <TableCell className="text-center">
@@ -254,8 +261,8 @@ function GradesContent() {
                             disabled={isReadOnly} 
                             className="w-20 mx-auto text-center h-8" 
                             placeholder="-" 
-                            value={gradesState[student.id]?.v2 || ''}
-                            onChange={(e) => handleGradeChange(student.id, 'v2', e.target.value)}
+                            value={gradesState[student.id]?.b2 || ''}
+                            onChange={(e) => handleGradeChange(student.id, 'b2', e.target.value)}
                           />
                         </TableCell>
                         <TableCell className="text-center">
@@ -263,8 +270,17 @@ function GradesContent() {
                             disabled={isReadOnly} 
                             className="w-20 mx-auto text-center h-8" 
                             placeholder="-" 
-                            value={gradesState[student.id]?.work || ''}
-                            onChange={(e) => handleGradeChange(student.id, 'work', e.target.value)}
+                            value={gradesState[student.id]?.b3 || ''}
+                            onChange={(e) => handleGradeChange(student.id, 'b3', e.target.value)}
+                          />
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Input 
+                            disabled={isReadOnly} 
+                            className="w-20 mx-auto text-center h-8" 
+                            placeholder="-" 
+                            value={gradesState[student.id]?.b4 || ''}
+                            onChange={(e) => handleGradeChange(student.id, 'b4', e.target.value)}
                           />
                         </TableCell>
                         <TableCell className="text-center bg-emerald-50/50">
