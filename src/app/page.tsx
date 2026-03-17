@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -42,6 +41,7 @@ export default function Home() {
     }
 
     if (!auth) {
+      // This case is now handled by disabling the button, but kept for safety.
       toast({
         variant: "destructive",
         title: "Sistema em inicialização",
@@ -54,6 +54,7 @@ export default function Home() {
     try {
       initiateEmailSignIn(auth, email, password);
     } catch (error: any) {
+      console.error(error);
       toast({
         variant: "destructive",
         title: "Erro ao acessar",
@@ -62,6 +63,8 @@ export default function Home() {
       setLoading(false);
     }
   };
+
+  const isAuthReady = !!auth;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[#F5F5F5] font-body">
@@ -87,7 +90,7 @@ export default function Home() {
                   className="pl-10 h-11"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  disabled={loading || isUserLoading}
+                  disabled={loading || isUserLoading || !isAuthReady}
                   required
                 />
               </div>
@@ -104,7 +107,7 @@ export default function Home() {
                   className="pl-10 h-11"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  disabled={loading || isUserLoading}
+                  disabled={loading || isUserLoading || !isAuthReady}
                   required
                 />
               </div>
@@ -113,10 +116,13 @@ export default function Home() {
             <Button 
               type="submit"
               className="w-full h-12 text-lg bg-[#4CAF50] hover:bg-[#43a047] gap-2 rounded-xl shadow-lg transition-all"
-              disabled={loading || isUserLoading || isAuthenticated}
+              disabled={loading || isUserLoading || isAuthenticated || !isAuthReady}
             >
-              {loading || isUserLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
+              {loading || isUserLoading || !isAuthReady ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span>Carregando...</span>
+                </div>
               ) : (
                 <>
                   Acessar Sistema

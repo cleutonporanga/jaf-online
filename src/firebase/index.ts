@@ -1,4 +1,3 @@
-
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
@@ -6,23 +5,34 @@ import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 
-let app: FirebaseApp | null = null;
-let auth: Auth | null = null;
-let db: Firestore | null = null;
+let appInstance: FirebaseApp | null = null;
+let authInstance: Auth | null = null;
+let dbInstance: Firestore | null = null;
 
 /**
  * Initializes the Firebase services only in the browser environment.
+ * Uses a singleton pattern to ensure only one instance of each service exists.
  */
 export function initializeFirebase() {
   if (typeof window !== 'undefined') {
-    if (!getApps().length) {
-      app = initializeApp(firebaseConfig);
-    } else {
-      app = getApp();
+    try {
+      if (!getApps().length) {
+        appInstance = initializeApp(firebaseConfig);
+      } else {
+        appInstance = getApp();
+      }
+      
+      if (!authInstance) authInstance = getAuth(appInstance);
+      if (!dbInstance) dbInstance = getFirestore(appInstance);
+      
+      return { 
+        firebaseApp: appInstance, 
+        auth: authInstance, 
+        firestore: dbInstance 
+      };
+    } catch (error) {
+      console.error("Firebase initialization error:", error);
     }
-    auth = getAuth(app);
-    db = getFirestore(app);
-    return { firebaseApp: app, auth, firestore: db };
   }
 
   return {
