@@ -93,18 +93,24 @@ export default function MeetingsPage() {
 
   const handleTogglePresence = (studentId: string) => {
     if (isReadOnly) return;
-    setAttendance(prev => ({
-      ...prev,
-      [studentId]: { ...prev[studentId], present: !prev[studentId]?.present }
-    }));
+    setAttendance(prev => {
+      const current = prev[studentId] || { present: false, observation: '' };
+      return {
+        ...prev,
+        [studentId]: { ...current, present: !current.present }
+      };
+    });
   };
 
   const handleObservationChange = (studentId: string, value: string) => {
     if (isReadOnly) return;
-    setAttendance(prev => ({
-      ...prev,
-      [studentId]: { ...prev[studentId], observation: value }
-    }));
+    setAttendance(prev => {
+      const current = prev[studentId] || { present: false, observation: '' };
+      return {
+        ...prev,
+        [studentId]: { ...current, observation: value }
+      };
+    });
   };
 
   const stats = useMemo(() => {
@@ -130,8 +136,8 @@ export default function MeetingsPage() {
         studentId: student.id,
         courseId: selectedClassId,
         date: today,
-        present: record.present,
-        observation: record.observation,
+        present: record.present ?? false,
+        observation: record.observation ?? '',
         recordedByUserId: firebaseUser.uid,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
