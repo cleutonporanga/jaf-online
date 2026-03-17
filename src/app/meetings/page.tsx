@@ -23,7 +23,8 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { useAuth } from '@/lib/auth-store';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, doc, serverTimestamp } from 'firebase/firestore';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Users, Save, PieChart, CheckCircle2, XCircle, Loader2, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -43,6 +44,7 @@ export default function MeetingsPage() {
   
   const [selectedClassId, setSelectedClassId] = useState<string>("");
   const isReadOnly = appUser?.role === 'aluno';
+  const today = new Date().toISOString().split('T')[0];
 
   const classesQuery = useMemoFirebase(() => {
     if (!firebaseUser) return null;
@@ -68,6 +70,26 @@ export default function MeetingsPage() {
   const { data: students, isLoading: loadingStudents } = useCollection(studentsQuery);
 
   const [attendance, setAttendance] = useState<Record<string, { present: boolean, observation: string }>>({});
+
+  const meetingRecordsQuery = useMemoFirebase(() => {
+    if (!selectedClassId) return null;
+    return query(collection(db, 'meetingAttendance'), where('courseId', '==', selectedClassId), where('date', '==', today));
+  }, [db, selectedClassId, today]);
+
+  const { data: existingRecords } = useCollection(meetingRecordsQuery);
+
+  useEffect(() => {
+    if (existingRecords) {
+      const newState: Record<string, { present: boolean, observation: string }> = {};
+      existingRecords.forEach(record => {
+        newState[record.studentId] = {
+          present: record.present,
+          observation: record.observation || ''
+        };
+      });
+      setAttendance(newState);
+    }
+  }, [existingRecords]);
 
   const handleTogglePresence = (studentId: string) => {
     if (isReadOnly) return;
@@ -96,7 +118,26 @@ export default function MeetingsPage() {
   }, [students, attendance]);
 
   const handleSave = () => {
-    if (isReadOnly) return;
+    if (isReadOnly || !firebaseUser || !selectedClassId) return;
+
+    students?.forEach(student => {
+      const record = attendance[student.id] || { present: false, observation: '' };
+      const recordId = `${student.id}-${selectedClassId}-${today}`;
+      const docRef = doc(db, 'meetingAttendance', recordId);
+
+      setDocumentNonBlocking(docRef, {
+        id: recordId,
+        studentId: student.id,
+        courseId: selectedClassId,
+        date: today,
+        present: record.present,
+        observation: record.observation,
+        recordedByUserId: firebaseUser.uid,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+    });
+
     toast({
       title: "Presenças Registradas",
       description: "A participação dos pais na reunião foi salva com sucesso.",
@@ -157,7 +198,7 @@ export default function MeetingsPage() {
                 <Users className="h-5 w-5 text-[#4CAF50]" />
                 Lista de Presença - {classes?.find(c => c.id === selectedClassId)?.name || "Turma"}
               </CardTitle>
-              <CardDescription>Participação dos pais na reunião de hoje.</CardDescription>
+              <CardDescription>Participação dos pais na reunião de hoje ({new Date().toLocaleDateString('pt-BR')}).</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               {loadingStudents ? (
@@ -180,7 +221,7 @@ export default function MeetingsPage() {
                         <TableCell className="text-center">
                           <div className="flex justify-center">
                             <Checkbox 
-                              checked={attendance[student.id]?.present}
+                              checked={attendance[student.id]?.present || false}
                               onCheckedChange={() => handleTogglePresence(student.id)}
                               disabled={isReadOnly}
                               className="border-[#4CAF50] data-[state=checked]:bg-[#4CAF50]"
@@ -260,7 +301,7 @@ export default function MeetingsPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm opacity-90">
-                  A participação dos pais nesta turma é de 
+                  A participação dos pais nesta turma hoje é de 
                   <span className="font-bold ml-1">
                     {students?.length ? ((stats[0].value / students.length) * 100).toFixed(0) : 0}%
                   </span>.

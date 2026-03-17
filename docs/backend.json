@@ -161,6 +161,23 @@
       },
       "required": ["id", "date", "status", "studentId", "courseId", "recordedByProfessorId", "createdAt", "updatedAt"]
     },
+    "MeetingAttendance": {
+      "title": "MeetingAttendance",
+      "type": "object",
+      "description": "Represents the attendance of parents/guardians at school meetings.",
+      "properties": {
+        "id": { "type": "string" },
+        "studentId": { "type": "string" },
+        "courseId": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "present": { "type": "boolean" },
+        "observation": { "type": "string" },
+        "recordedByUserId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "studentId", "courseId", "date", "present", "recordedByUserId", "createdAt", "updatedAt"]
+    },
     "GradeRecord": {
       "title": "GradeRecord",
       "type": "object",
@@ -274,6 +291,15 @@
           "entityName": "AttendanceRecord",
           "schema": { "$ref": "#/backend/entities/AttendanceRecord" },
           "description": "Attendance logs.",
+          "params": [{ "name": "attendanceId" }]
+        }
+      },
+      {
+        "path": "/meetingAttendance/{attendanceId}",
+        "definition": {
+          "entityName": "MeetingAttendance",
+          "schema": { "$ref": "#/backend/entities/MeetingAttendance" },
+          "description": "Parent meeting attendance logs.",
           "params": [{ "name": "attendanceId" }]
         }
       },

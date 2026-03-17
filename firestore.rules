@@ -68,6 +68,12 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    match /meetingAttendance/{attendanceId} {
+      allow list, get: if isSignedIn();
+      allow create, update: if isStaff();
+      allow delete: if isAdmin();
+    }
+
     match /gradeRecords/{gradeId} {
       allow list, get: if isSignedIn();
       allow create, update: if isStaff();
