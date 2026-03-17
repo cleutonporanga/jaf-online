@@ -22,7 +22,8 @@ import {
 } from '@/components/ui/select';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { useAuth } from '@/lib/auth-store';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, doc, serverTimestamp } from 'firebase/firestore';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Calculator, Save, Download, Plus, Loader2, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -32,6 +33,7 @@ export default function GradesPage() {
   const { user: appUser } = useAuth();
   const { toast } = useToast();
   const [selectedClassId, setSelectedClassId] = useState<string>("");
+  const [gradesState, setGradesState] = useState<Record<string, { v1: string, v2: string, work: string }>>({});
 
   const isReadOnly = appUser?.role === 'aluno';
 
@@ -58,8 +60,76 @@ export default function GradesPage() {
 
   const { data: students, isLoading: loadingStudents } = useCollection(studentsQuery);
 
-  const handleSave = () => {
+  const gradesQuery = useMemoFirebase(() => {
+    if (!selectedClassId) return null;
+    return query(collection(db, 'gradeRecords'), where('courseId', '==', selectedClassId));
+  }, [db, selectedClassId]);
+
+  const { data: existingGrades } = useCollection(gradesQuery);
+
+  useEffect(() => {
+    if (existingGrades && students) {
+      const newState: Record<string, { v1: string, v2: string, work: string }> = {};
+      existingGrades.forEach(g => {
+        if (!newState[g.studentId]) newState[g.studentId] = { v1: '', v2: '', work: '' };
+        if (g.activityName === 'Avaliação 1') newState[g.studentId].v1 = g.value.toString();
+        if (g.activityName === 'Avaliação 2') newState[g.studentId].v2 = g.value.toString();
+        if (g.activityName === 'Trabalho') newState[g.studentId].work = g.value.toString();
+      });
+      setGradesState(newState);
+    }
+  }, [existingGrades, students]);
+
+  const handleGradeChange = (studentId: string, field: 'v1' | 'v2' | 'work', value: string) => {
     if (isReadOnly) return;
+    if (value === '' || /^\d*[.,]?\d*$/.test(value)) {
+      setGradesState(prev => ({
+        ...prev,
+        [studentId]: { ... (prev[studentId] || { v1: '', v2: '', work: '' }), [field]: value }
+      }));
+    }
+  };
+
+  const calculateAverage = (studentId: string) => {
+    const g = gradesState[studentId];
+    if (!g) return "-";
+    const v1 = parseFloat(g.v1.replace(',', '.')) || 0;
+    const v2 = parseFloat(g.v2.replace(',', '.')) || 0;
+    const work = parseFloat(g.work.replace(',', '.')) || 0;
+    if (!g.v1 && !g.v2 && !g.work) return "-";
+    return ((v1 + v2 + work) / 3).toFixed(1);
+  };
+
+  const handleSave = () => {
+    if (isReadOnly || !firebaseUser || !selectedClassId) return;
+
+    students?.forEach(student => {
+      const g = gradesState[student.id];
+      if (!g) return;
+
+      const saveGrade = (val: string, type: string) => {
+        if (val === '') return;
+        const gradeId = `${student.id}-${selectedClassId}-${type.replace(/\s/g, '')}`;
+        const docRef = doc(db, 'gradeRecords', gradeId);
+        
+        setDocumentNonBlocking(docRef, {
+          id: gradeId,
+          studentId: student.id,
+          courseId: selectedClassId,
+          value: parseFloat(val.replace(',', '.')),
+          activityName: type,
+          date: new Date().toISOString().split('T')[0],
+          recordedByProfessorId: firebaseUser.uid,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+      };
+
+      saveGrade(g.v1, 'Avaliação 1');
+      saveGrade(g.v2, 'Avaliação 2');
+      saveGrade(g.work, 'Trabalho');
+    });
+
     toast({
       title: "Notas Atualizadas",
       description: "As alterações foram salvas com sucesso no sistema.",
@@ -139,25 +209,51 @@ export default function GradesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {students?.map((student) => (
-                    <TableRow key={student.id}>
-                      <TableCell className="font-medium">{student.firstName} {student.lastName}</TableCell>
-                      <TableCell className="text-center">
-                        <Input disabled={isReadOnly} className="w-20 mx-auto text-center h-8" placeholder="-" />
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Input disabled={isReadOnly} className="w-20 mx-auto text-center h-8" placeholder="-" />
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Input disabled={isReadOnly} className="w-20 mx-auto text-center h-8" placeholder="-" />
-                      </TableCell>
-                      <TableCell className="text-center bg-emerald-50/50">
-                        <span className="font-bold text-muted-foreground">-</span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {students?.map((student) => {
+                    const avg = calculateAverage(student.id);
+                    return (
+                      <TableRow key={student.id}>
+                        <TableCell className="font-medium">{student.firstName} {student.lastName}</TableCell>
+                        <TableCell className="text-center">
+                          <Input 
+                            disabled={isReadOnly} 
+                            className="w-20 mx-auto text-center h-8" 
+                            placeholder="-" 
+                            value={gradesState[student.id]?.v1 || ''}
+                            onChange={(e) => handleGradeChange(student.id, 'v1', e.target.value)}
+                          />
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Input 
+                            disabled={isReadOnly} 
+                            className="w-20 mx-auto text-center h-8" 
+                            placeholder="-" 
+                            value={gradesState[student.id]?.v2 || ''}
+                            onChange={(e) => handleGradeChange(student.id, 'v2', e.target.value)}
+                          />
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Input 
+                            disabled={isReadOnly} 
+                            className="w-20 mx-auto text-center h-8" 
+                            placeholder="-" 
+                            value={gradesState[student.id]?.work || ''}
+                            onChange={(e) => handleGradeChange(student.id, 'work', e.target.value)}
+                          />
+                        </TableCell>
+                        <TableCell className="text-center bg-emerald-50/50">
+                          <span className={`font-bold ${avg !== '-' && parseFloat(avg) < 6 ? 'text-red-600' : 'text-[#2E7D32]'}`}>
+                            {avg}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
+            )}
+            {(!students || students.length === 0) && !loadingStudents && (
+              <div className="p-12 text-center text-muted-foreground italic">Nenhum aluno matriculado nesta turma.</div>
             )}
           </CardContent>
         </Card>
