@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -138,9 +139,9 @@ export default function Dashboard() {
                   <ActionItem text="Registrar frequência semanal" type="warning" />
                   <ActionItem text="Lançar novas notas do bimestre" type="info" />
                   <ActionItem text="Atualizar perfil institucional" type="info" />
-                </ActionItem>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
           <div className="space-y-8">
