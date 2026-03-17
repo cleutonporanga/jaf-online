@@ -168,8 +168,7 @@ export default function CalendarPage() {
       description: "O evento foi excluído do calendário institucional.",
     });
 
-    // Update local state to reflect deletion immediately if needed, 
-    // though useCollection will sync it.
+    // Update local state to reflect deletion immediately for the UI
     setSelectedDayEvents(prev => prev.filter(e => e.id !== eventId));
     if (selectedDayEvents.length <= 1) {
       setIsViewDialogOpen(false);
