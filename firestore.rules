@@ -1,11 +1,3 @@
-/**
- * ScholarView Security Rules (Prototyping Mode)
- *
- * Core Philosophy: 
- * This ruleset ensures the system is functional during prototyping by allowing 
- * authenticated users to read and manage relevant data, while protecting 
- * administrative actions.
- */
 
 rules_version = '2';
 service cloud.firestore {
@@ -21,17 +13,32 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // Safer isAdmin that checks for document existence before accessing data
-    function isAdmin() {
+    function getUserData() {
+      return get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data;
+    }
+
+    function hasRole(role) {
       return isSignedIn() && 
         exists(/databases/$(database)/documents/userProfiles/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.role == 'administrador';
+        getUserData().role == role;
+    }
+
+    function isAdmin() {
+      return hasRole('administrador');
+    }
+
+    function isProfessor() {
+      return hasRole('professor');
+    }
+
+    function isStaff() {
+      return isAdmin() || isProfessor();
     }
 
     // --- Collection Rules ---
 
     match /userProfiles/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
+      allow get: if isOwner(userId) || isAdmin() || isSignedIn();
       allow list: if isAdmin();
       allow create: if isOwner(userId) || isAdmin();
       allow update: if isOwner(userId) || isAdmin();
@@ -40,37 +47,37 @@ service cloud.firestore {
 
     match /courses/{courseId} {
       allow list, get: if isSignedIn();
-      allow create, update: if isSignedIn();
+      allow create, update: if isStaff();
       allow delete: if isAdmin();
     }
 
     match /students/{studentId} {
       allow list, get: if isSignedIn();
-      allow create, update: if isSignedIn();
+      allow create, update: if isStaff();
       allow delete: if isAdmin();
     }
 
     match /attendanceRecords/{attendanceId} {
       allow list, get: if isSignedIn();
-      allow create, update: if isSignedIn();
+      allow create, update: if isStaff();
       allow delete: if isAdmin();
     }
 
     match /gradeRecords/{gradeId} {
       allow list, get: if isSignedIn();
-      allow create, update: if isSignedIn();
+      allow create, update: if isStaff();
       allow delete: if isAdmin();
     }
 
     match /schoolEvents/{eventId} {
       allow list, get: if isSignedIn();
-      allow create, update: if isSignedIn();
+      allow create, update: if isStaff();
       allow delete: if isAdmin();
     }
 
     match /studentHighlights/{highlightId} {
       allow list, get: if isSignedIn();
-      allow create, update: if isSignedIn();
+      allow create, update: if isStaff();
       allow delete: if isAdmin();
     }
   }

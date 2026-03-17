@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -21,8 +21,10 @@ import {
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { mockClasses, mockStudents } from '@/lib/data';
-import { Users, Save, PieChart, CheckCircle2, XCircle } from 'lucide-react';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { useAuth } from '@/lib/auth-store';
+import { collection, query, where } from 'firebase/firestore';
+import { Users, Save, PieChart, CheckCircle2, XCircle, Loader2, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { 
   ChartContainer, 
@@ -34,30 +36,49 @@ import {
 import { Pie, PieChart as RePieChart, Cell, ResponsiveContainer } from 'recharts';
 
 export default function MeetingsPage() {
-  const [selectedClass, setSelectedClass] = useState(mockClasses[0].id);
+  const db = useFirestore();
+  const { user: firebaseUser, isUserLoading: authLoading } = useUser();
+  const { user: appUser } = useAuth();
   const { toast } = useToast();
   
-  const studentsInClass = useMemo(() => 
-    mockStudents.filter(s => s.classId === selectedClass), 
-    [selectedClass]
-  );
+  const [selectedClassId, setSelectedClassId] = useState<string>("");
+  const isReadOnly = appUser?.role === 'aluno';
 
-  // Parent attendance state: studentId -> { present: boolean, observation: string }
-  const [attendance, setAttendance] = useState<Record<string, { present: boolean, observation: string }>>(
-    mockStudents.reduce((acc, s) => ({ 
-      ...acc, 
-      [s.id]: { present: false, observation: '' } 
-    }), {})
-  );
+  const classesQuery = useMemoFirebase(() => {
+    if (!firebaseUser) return null;
+    if (appUser?.role === 'administrador' || appUser?.role === 'aluno') {
+      return query(collection(db, 'courses'));
+    }
+    return query(collection(db, 'courses'), where('professorId', '==', firebaseUser.uid));
+  }, [db, firebaseUser, appUser]);
+
+  const { data: classes, isLoading: loadingClasses } = useCollection(classesQuery);
+
+  useEffect(() => {
+    if (classes && classes.length > 0 && !selectedClassId) {
+      setSelectedClassId(classes[0].id);
+    }
+  }, [classes, selectedClassId]);
+
+  const studentsQuery = useMemoFirebase(() => {
+    if (!firebaseUser || !selectedClassId) return null;
+    return query(collection(db, 'students'), where('courseIds', 'array-contains', selectedClassId));
+  }, [db, firebaseUser, selectedClassId]);
+
+  const { data: students, isLoading: loadingStudents } = useCollection(studentsQuery);
+
+  const [attendance, setAttendance] = useState<Record<string, { present: boolean, observation: string }>>({});
 
   const handleTogglePresence = (studentId: string) => {
+    if (isReadOnly) return;
     setAttendance(prev => ({
       ...prev,
-      [studentId]: { ...prev[studentId], present: !prev[studentId].present }
+      [studentId]: { ...prev[studentId], present: !prev[studentId]?.present }
     }));
   };
 
   const handleObservationChange = (studentId: string, value: string) => {
+    if (isReadOnly) return;
     setAttendance(prev => ({
       ...prev,
       [studentId]: { ...prev[studentId], observation: value }
@@ -65,15 +86,17 @@ export default function MeetingsPage() {
   };
 
   const stats = useMemo(() => {
-    const presentCount = studentsInClass.filter(s => attendance[s.id]?.present).length;
-    const absentCount = studentsInClass.length - presentCount;
+    if (!students) return [{ name: 'Presente', value: 0, fill: '#4CAF50' }, { name: 'Ausente', value: 0, fill: '#E0E0E0' }];
+    const presentCount = students.filter(s => attendance[s.id]?.present).length;
+    const absentCount = students.length - presentCount;
     return [
       { name: 'Presente', value: presentCount, fill: '#4CAF50' },
       { name: 'Ausente', value: absentCount, fill: '#E0E0E0' }
     ];
-  }, [studentsInClass, attendance]);
+  }, [students, attendance]);
 
   const handleSave = () => {
+    if (isReadOnly) return;
     toast({
       title: "Presenças Registradas",
       description: "A participação dos pais na reunião foi salva com sucesso.",
@@ -82,15 +105,13 @@ export default function MeetingsPage() {
   };
 
   const chartConfig = {
-    present: {
-      label: "Presente",
-      color: "#4CAF50",
-    },
-    absent: {
-      label: "Ausente",
-      color: "#E0E0E0",
-    },
+    present: { label: "Presente", color: "#4CAF50" },
+    absent: { label: "Ausente", color: "#E0E0E0" },
   };
+
+  if (authLoading || (loadingClasses && !classes)) {
+    return <div className="flex h-[80vh] items-center justify-center"><Loader2 className="animate-spin text-[#4CAF50]" /></div>;
+  }
 
   return (
     <div className="min-h-full bg-[#F5F5F5]">
@@ -98,73 +119,89 @@ export default function MeetingsPage() {
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-[#2E7D32] font-headline">Reunião de Pais</h1>
-            <p className="text-muted-foreground">Registre a presença e acompanhe a participação dos responsáveis.</p>
+            <p className="text-muted-foreground">
+              {isReadOnly ? "Visualizando participação dos responsáveis." : "Registre a presença e acompanhe a participação dos responsáveis."}
+            </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <Select value={selectedClass} onValueChange={setSelectedClass}>
+            <Select value={selectedClassId} onValueChange={setSelectedClassId}>
               <SelectTrigger className="w-64 bg-white">
                 <SelectValue placeholder="Selecione a turma" />
               </SelectTrigger>
               <SelectContent>
-                {mockClasses.map(c => (
-                  <SelectItem key={c.id} value={c.id}>{c.name} ({c.grade})</SelectItem>
+                {classes?.map(c => (
+                  <SelectItem key={c.id} value={c.id}>{c.name} ({c.gradeLevel})</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Button onClick={handleSave} className="bg-[#4CAF50] hover:bg-[#43a047] gap-2 shadow-sm">
-              <Save className="h-4 w-4" />
-              Salvar Registro
-            </Button>
+            {!isReadOnly && (
+              <Button onClick={handleSave} className="bg-[#4CAF50] hover:bg-[#43a047] gap-2 shadow-sm">
+                <Save className="h-4 w-4" />
+                Salvar Registro
+              </Button>
+            )}
           </div>
         </header>
 
+        {isReadOnly && (
+          <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-3 text-amber-800">
+            <AlertTriangle className="h-5 w-5" />
+            <p className="text-sm font-medium">Você está acessando como visualizador. Edições não são permitidas.</p>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Tabela de Presença */}
           <Card className="lg:col-span-2 border-none shadow-lg overflow-hidden">
             <CardHeader className="bg-white border-b">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Users className="h-5 w-5 text-[#4CAF50]" />
-                Lista de Presença - {mockClasses.find(c => c.id === selectedClass)?.name}
+                Lista de Presença - {classes?.find(c => c.id === selectedClassId)?.name || "Turma"}
               </CardTitle>
-              <CardDescription>Marque os pais que compareceram à reunião hoje.</CardDescription>
+              <CardDescription>Participação dos pais na reunião de hoje.</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <Table>
-                <TableHeader className="bg-gray-50">
-                  <TableRow>
-                    <TableHead className="w-20 text-center">Nº</TableHead>
-                    <TableHead>Aluno</TableHead>
-                    <TableHead className="w-32 text-center">Pai Presente</TableHead>
-                    <TableHead>Observação</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {studentsInClass.map((student, index) => (
-                    <TableRow key={student.id} className="hover:bg-gray-50 transition-colors">
-                      <TableCell className="text-center font-mono text-muted-foreground">{index + 1}</TableCell>
-                      <TableCell className="font-medium">{student.name}</TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex justify-center">
-                          <Checkbox 
-                            checked={attendance[student.id]?.present}
-                            onCheckedChange={() => handleTogglePresence(student.id)}
-                            className="border-[#4CAF50] data-[state=checked]:bg-[#4CAF50]"
-                          />
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Input 
-                          placeholder="Ex: Participou ativamente"
-                          value={attendance[student.id]?.observation}
-                          onChange={(e) => handleObservationChange(student.id, e.target.value)}
-                          className="h-8 text-xs border-emerald-100 focus:border-emerald-300"
-                        />
-                      </TableCell>
+              {loadingStudents ? (
+                <div className="p-12 text-center"><Loader2 className="animate-spin mx-auto text-[#4CAF50]" /></div>
+              ) : (
+                <Table>
+                  <TableHeader className="bg-gray-50">
+                    <TableRow>
+                      <TableHead className="w-20 text-center">Nº</TableHead>
+                      <TableHead>Aluno</TableHead>
+                      <TableHead className="w-32 text-center">Pai Presente</TableHead>
+                      <TableHead>Observação</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              {studentsInClass.length === 0 && (
+                  </TableHeader>
+                  <TableBody>
+                    {students?.map((student, index) => (
+                      <TableRow key={student.id} className="hover:bg-gray-50 transition-colors">
+                        <TableCell className="text-center font-mono text-muted-foreground">{index + 1}</TableCell>
+                        <TableCell className="font-medium">{student.firstName} {student.lastName}</TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex justify-center">
+                            <Checkbox 
+                              checked={attendance[student.id]?.present}
+                              onCheckedChange={() => handleTogglePresence(student.id)}
+                              disabled={isReadOnly}
+                              className="border-[#4CAF50] data-[state=checked]:bg-[#4CAF50]"
+                            />
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Input 
+                            placeholder="Ex: Participou ativamente"
+                            value={attendance[student.id]?.observation || ''}
+                            onChange={(e) => handleObservationChange(student.id, e.target.value)}
+                            disabled={isReadOnly}
+                            className="h-8 text-xs border-emerald-100 focus:border-emerald-300"
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+              {students?.length === 0 && !loadingStudents && (
                 <div className="p-12 text-center">
                   <p className="text-muted-foreground italic">Nenhum aluno matriculado nesta turma.</p>
                 </div>
@@ -172,7 +209,6 @@ export default function MeetingsPage() {
             </CardContent>
           </Card>
 
-          {/* Estatísticas */}
           <div className="space-y-8">
             <Card className="border-none shadow-lg">
               <CardHeader>
@@ -226,13 +262,11 @@ export default function MeetingsPage() {
                 <p className="text-sm opacity-90">
                   A participação dos pais nesta turma é de 
                   <span className="font-bold ml-1">
-                    {studentsInClass.length > 0 
-                      ? ((stats[0].value / studentsInClass.length) * 100).toFixed(0) 
-                      : 0}%
+                    {students?.length ? ((stats[0].value / students.length) * 100).toFixed(0) : 0}%
                   </span>.
                 </p>
                 <div className="flex items-center gap-2 text-sm">
-                  {stats[0].value > stats[1].value ? (
+                  {stats[0].value >= (students?.length || 0) / 2 ? (
                     <>
                       <CheckCircle2 className="h-4 w-4 text-emerald-400" />
                       <span>Bom engajamento familiar.</span>
@@ -240,7 +274,7 @@ export default function MeetingsPage() {
                   ) : (
                     <>
                       <XCircle className="h-4 w-4 text-orange-400" />
-                      <span>Baixo engajamento. Recomenda-se busca ativa.</span>
+                      <span>Baixo engajamento identificado.</span>
                     </>
                   )}
                 </div>

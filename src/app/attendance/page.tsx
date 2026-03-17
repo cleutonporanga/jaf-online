@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -20,9 +21,10 @@ import {
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { useAuth } from '@/lib/auth-store';
 import { collection, query, where, doc, serverTimestamp } from 'firebase/firestore';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { Users, Save, CalendarDays, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { Users, Save, CalendarDays, FileSpreadsheet, Loader2, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const months = [
@@ -32,16 +34,22 @@ const months = [
 
 export default function AttendancePage() {
   const db = useFirestore();
-  const { user, isUserLoading: authLoading } = useUser();
+  const { user: firebaseUser, isUserLoading: authLoading } = useUser();
+  const { user: appUser } = useAuth();
   const { toast } = useToast();
   const [selectedClassId, setSelectedClassId] = useState<string>("");
   const [selectedMonth, setSelectedMonth] = useState(months[new Date().getMonth()]);
   const [absences, setAbsences] = useState<Record<string, string>>({});
 
+  const isReadOnly = appUser?.role === 'aluno';
+
   const classesQuery = useMemoFirebase(() => {
-    if (!user) return null;
-    return query(collection(db, 'courses'), where('professorId', '==', user.uid));
-  }, [db, user]);
+    if (!firebaseUser) return null;
+    if (appUser?.role === 'administrador' || appUser?.role === 'aluno') {
+      return query(collection(db, 'courses'));
+    }
+    return query(collection(db, 'courses'), where('professorId', '==', firebaseUser.uid));
+  }, [db, firebaseUser, appUser]);
   
   const { data: classes, isLoading: loadingClasses } = useCollection(classesQuery);
 
@@ -52,20 +60,22 @@ export default function AttendancePage() {
   }, [classes, selectedClassId]);
 
   const studentsQuery = useMemoFirebase(() => {
-    if (!user || !selectedClassId) return null;
+    if (!firebaseUser || !selectedClassId) return null;
     return query(collection(db, 'students'), where('courseIds', 'array-contains', selectedClassId));
-  }, [db, user, selectedClassId]);
+  }, [db, firebaseUser, selectedClassId]);
 
   const { data: students, isLoading: loadingStudents } = useCollection(studentsQuery);
 
   const handleAbsenceChange = (studentId: string, value: string) => {
+    if (isReadOnly) return;
     if (value === '' || /^\d+$/.test(value)) {
       setAbsences(prev => ({ ...prev, [studentId]: value }));
     }
   };
 
   const handleSave = () => {
-    if (!user || !selectedClassId) return;
+    if (isReadOnly) return;
+    if (!firebaseUser || !selectedClassId) return;
 
     students?.forEach(student => {
       const absenceCount = absences[student.id] || '0';
@@ -79,8 +89,8 @@ export default function AttendancePage() {
         date: new Date().toISOString().split('T')[0],
         status: parseInt(absenceCount) > 0 ? 'Ausente' : 'Presente',
         notes: `Total de faltas no mês de ${selectedMonth}: ${absenceCount}`,
-        recordedByProfessorId: user.uid,
-        courseProfessorId: user.uid,
+        recordedByProfessorId: firebaseUser.uid,
+        courseProfessorId: firebaseUser.uid,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       }, { merge: true });
@@ -97,7 +107,7 @@ export default function AttendancePage() {
     return <div className="flex h-[80vh] items-center justify-center"><Loader2 className="animate-spin text-[#4CAF50]" /></div>;
   }
 
-  if (!user) {
+  if (!firebaseUser) {
     return (
       <div className="flex h-[80vh] items-center justify-center">
         <p className="text-muted-foreground">Por favor, realize o login para acessar a frequência.</p>
@@ -111,7 +121,11 @@ export default function AttendancePage() {
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-[#2E7D32] font-headline">Frequência Mensal</h1>
-            <p className="text-muted-foreground">Registre o total de faltas dos alunos no mês selecionado.</p>
+            <p className="text-muted-foreground">
+              {isReadOnly 
+                ? "Visualizando registro de faltas da turma." 
+                : "Registre o total de faltas dos alunos no mês selecionado."}
+            </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <Select value={selectedMonth} onValueChange={setSelectedMonth}>
@@ -135,12 +149,21 @@ export default function AttendancePage() {
                 ))}
               </SelectContent>
             </Select>
-            <Button onClick={handleSave} className="bg-[#4CAF50] hover:bg-[#43a047] gap-2 shadow-sm">
-              <Save className="h-4 w-4" />
-              Salvar Registro
-            </Button>
+            {!isReadOnly && (
+              <Button onClick={handleSave} className="bg-[#4CAF50] hover:bg-[#43a047] gap-2 shadow-sm">
+                <Save className="h-4 w-4" />
+                Salvar Registro
+              </Button>
+            )}
           </div>
         </header>
+
+        {isReadOnly && (
+          <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-3 text-amber-800">
+            <AlertTriangle className="h-5 w-5" />
+            <p className="text-sm font-medium">Você está acessando como visualizador. Edições não são permitidas.</p>
+          </div>
+        )}
 
         <Card className="border-none shadow-lg overflow-hidden">
           <CardHeader className="bg-white border-b flex flex-row items-center justify-between">
@@ -181,6 +204,7 @@ export default function AttendancePage() {
                             inputMode="numeric"
                             value={absences[student.id] || '0'}
                             onChange={(e) => handleAbsenceChange(student.id, e.target.value)}
+                            disabled={isReadOnly}
                             className="w-24 mx-auto text-center font-bold"
                           />
                         </TableCell>

@@ -24,6 +24,8 @@ import { signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 const ADMIN_EMAIL = 'cleutonlima06@gmail.com';
+const TEACHER_EMAIL = 'jaf@escola.com';
+const STUDENT_EMAIL = 'aluno@escola.com';
 
 export function Navbar() {
   const firebaseAuth = useFirebaseAuth();
@@ -44,22 +46,28 @@ export function Navbar() {
           
           let role: UserRole = 'professor';
           
-          // Lógica especial para o administrador definido
           if (firebaseUser.email === ADMIN_EMAIL) {
             role = 'administrador';
+          } else if (firebaseUser.email === STUDENT_EMAIL) {
+            role = 'aluno';
+          } else if (firebaseUser.email === TEACHER_EMAIL) {
+            role = 'professor';
           }
 
           if (userSnap.exists()) {
             const data = userSnap.data();
-            // Mantém o papel do banco, a menos que seja o admin fixo
-            role = firebaseUser.email === ADMIN_EMAIL ? 'administrador' : (data.role as UserRole);
+            // Sobrescreve papel se for um dos e-mails fixos para garantir sincronia
+            const targetRole = (firebaseUser.email === ADMIN_EMAIL) ? 'administrador' : 
+                               (firebaseUser.email === STUDENT_EMAIL) ? 'aluno' : 
+                               (firebaseUser.email === TEACHER_EMAIL) ? 'professor' : 
+                               (data.role as UserRole);
             
-            // Se o e-mail for o admin e o papel estiver errado no banco, corrige
-            if (firebaseUser.email === ADMIN_EMAIL && data.role !== 'administrador') {
-              await setDoc(userRef, { role: 'administrador', updatedAt: serverTimestamp() }, { merge: true });
+            role = targetRole;
+
+            if (data.role !== targetRole) {
+              await setDoc(userRef, { role: targetRole, updatedAt: serverTimestamp() }, { merge: true });
             }
           } else {
-            // Cria o perfil inicial se não existir
             await setDoc(userRef, {
               id: firebaseUser.uid,
               name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuário',
@@ -120,7 +128,9 @@ export function Navbar() {
                   {syncing && <Loader2 className="h-3 w-3 animate-spin opacity-50" />}
                   <p className="text-sm font-bold">{user?.name}</p>
                 </div>
-                <p className="text-[10px] uppercase tracking-wider opacity-80 font-bold">{user?.role}</p>
+                <p className="text-[10px] uppercase tracking-wider opacity-80 font-bold">
+                  {user?.role === 'aluno' ? 'Visualizador (Aluno)' : user?.role}
+                </p>
               </div>
               <Button 
                 variant="ghost" 
