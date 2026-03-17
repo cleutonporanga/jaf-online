@@ -20,17 +20,16 @@ export default function Dashboard() {
     <div className="min-h-full bg-[#F5F5F5]">
       <main className="container mx-auto px-4 py-8 space-y-8">
         <header>
-          <h1 className="text-3xl font-bold text-[#2E7D32] font-headline">Dashboard</h1>
+          <h1 className="text-3xl font-bold text-[#2E7D32] font-headline">Painel de Controle</h1>
           <p className="text-muted-foreground">Bem-vindo(a) ao seu painel de controle ScholarView.</p>
         </header>
 
-        {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard 
             title="Total de Alunos" 
             value={totalStudents.toString()} 
             icon={Users} 
-            color="bg-blue-500" 
+            color="bg-emerald-600" 
           />
           <StatCard 
             title="Minhas Turmas" 
@@ -48,12 +47,11 @@ export default function Dashboard() {
             title="Média Geral" 
             value="8.4" 
             icon={TrendingUp} 
-            color="bg-purple-500" 
+            color="bg-emerald-700" 
           />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Dashboard Area */}
           <div className="lg:col-span-2 space-y-8">
             <Card className="border-none shadow-md">
               <CardHeader>
@@ -72,7 +70,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="border-none shadow-md">
                 <CardHeader>
-                  <CardTitle className="text-lg">Turmas Recentes</CardTitle>
+                  <CardTitle className="text-lg text-[#2E7D32]">Turmas Recentes</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {mockClasses.map(c => (
@@ -89,7 +87,7 @@ export default function Dashboard() {
 
               <Card className="border-none shadow-md">
                 <CardHeader>
-                  <CardTitle className="text-lg">Ações Recomendadas</CardTitle>
+                  <CardTitle className="text-lg text-[#2E7D32]">Ações Recomendadas</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <ActionItem text="Registrar frequência: Matemática Avançada" type="warning" />
@@ -100,28 +98,30 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Sidebar Area */}
           <div className="space-y-8">
             <Card className="border-none shadow-md">
               <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
+                <CardTitle className="text-lg flex items-center gap-2 text-[#2E7D32]">
                   <CalendarIcon className="h-5 w-5 text-[#4CAF50]" />
                   Próximos Eventos
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {upcomingEvents.map(event => (
-                  <div key={event.id} className="flex gap-4 items-start">
-                    <div className="bg-[#4CAF50] text-white px-2 py-1 rounded text-center min-w-[50px]">
-                      <span className="text-xs block leading-none">{event.date.split('-')[2]}</span>
-                      <span className="text-[10px] uppercase font-bold">Mai</span>
+                {upcomingEvents.map(event => {
+                  const day = event.date.split('-')[2];
+                  return (
+                    <div key={event.id} className="flex gap-4 items-start">
+                      <div className="bg-[#4CAF50] text-white px-2 py-1 rounded text-center min-w-[50px]">
+                        <span className="text-xs block leading-none">{day}</span>
+                        <span className="text-[10px] uppercase font-bold">Maio</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold">{event.title}</p>
+                        <p className="text-xs text-muted-foreground capitalize">{event.type === 'holiday' ? 'Feriado' : event.type === 'meeting' ? 'Reunião' : 'Prazo'}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold">{event.title}</p>
-                      <p className="text-xs text-muted-foreground capitalize">{event.type}</p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </CardContent>
             </Card>
 
@@ -165,7 +165,7 @@ function StatCard({ title, value, icon: Icon, color }: { title: string, value: s
 
 function ActionItem({ text, type }: { text: string, type: 'warning' | 'info' }) {
   return (
-    <div className={`p-3 rounded-lg flex items-center gap-3 ${type === 'warning' ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700'}`}>
+    <div className={`p-3 rounded-lg flex items-center gap-3 ${type === 'warning' ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'}`}>
       <AlertCircle className="h-4 w-4" />
       <span className="text-sm font-medium">{text}</span>
     </div>

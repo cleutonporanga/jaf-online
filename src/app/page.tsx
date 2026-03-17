@@ -42,8 +42,8 @@ export default function Home() {
       
       <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl">
         <FeatureCard title="Gestão de Turmas" desc="Controle total sobre alunos e atribuições." />
-        <FeatureCard title="Diário Digital" desc="Chamadas e notas em tempo real." />
-        <FeatureCard title="IA Insight" desc="Análise preditiva de desempenho." />
+        <FeatureCard title="Diário Digital" desc="Frequência e notas em tempo real." />
+        <FeatureCard title="IA Insights" desc="Análise preditiva de desempenho." />
       </div>
     </div>
   );

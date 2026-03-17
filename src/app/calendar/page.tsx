@@ -13,11 +13,12 @@ import {
   Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ptBR } from 'date-fns/locale';
 
 export default function CalendarPage() {
   const [date, setDate] = useState<Date | undefined>(new Date());
   
-  // Find events for the selected day
+  // Encontrar eventos para o dia selecionado
   const selectedDateStr = date ? date.toISOString().split('T')[0] : '';
   const dayEvents = mockEvents.filter(e => e.date === selectedDateStr);
 
@@ -42,6 +43,7 @@ export default function CalendarPage() {
                 mode="single"
                 selected={date}
                 onSelect={setDate}
+                locale={ptBR}
                 className="rounded-md border-none w-full"
                 classNames={{
                   day_selected: "bg-[#4CAF50] text-white hover:bg-[#4CAF50] focus:bg-[#4CAF50]",
@@ -55,8 +57,8 @@ export default function CalendarPage() {
             <Card className="border-none shadow-md overflow-hidden">
               <CardHeader className="bg-white border-b flex flex-row items-center justify-between">
                 <CardTitle className="text-lg">Eventos do Dia</CardTitle>
-                <Badge variant="outline" className="text-[#2E7D32] border-[#4CAF50]">
-                  {date?.toLocaleDateString('pt-BR')}
+                <Badge variant="outline" className="text-[#2E7D32] border-[#4CAF50] capitalize">
+                  {date?.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
                 </Badge>
               </CardHeader>
               <CardContent className="p-6">
@@ -64,7 +66,7 @@ export default function CalendarPage() {
                   <div className="space-y-4">
                     {dayEvents.map(event => (
                       <div key={event.id} className="p-4 rounded-xl border border-emerald-100 bg-emerald-50/30 flex items-start gap-4">
-                        <div className={`p-3 rounded-lg ${event.type === 'holiday' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
+                        <div className={`p-3 rounded-lg ${event.type === 'holiday' ? 'bg-orange-100 text-orange-600' : 'bg-emerald-100 text-emerald-600'}`}>
                           <CalendarIcon className="h-6 w-6" />
                         </div>
                         <div className="flex-1">
@@ -80,7 +82,7 @@ export default function CalendarPage() {
                             </div>
                           </div>
                         </div>
-                        <Button variant="ghost" size="sm" className="text-xs">Ver Detalhes</Button>
+                        <Button variant="ghost" size="sm" className="text-xs text-[#2E7D32] hover:bg-emerald-50">Ver Detalhes</Button>
                       </div>
                     ))}
                   </div>
@@ -103,7 +105,7 @@ export default function CalendarPage() {
                   <span className="text-xs font-medium">Feriado</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="h-3 w-3 rounded-full bg-blue-400" />
+                  <div className="h-3 w-3 rounded-full bg-emerald-400" />
                   <span className="text-xs font-medium">Reunião</span>
                 </div>
                 <div className="flex items-center gap-2">
