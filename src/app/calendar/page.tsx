@@ -7,7 +7,12 @@ import {
   ChevronLeft, 
   ChevronRight, 
   Plus,
-  Loader2
+  Loader2,
+  Calendar as CalendarIcon,
+  Info,
+  Clock,
+  MapPin,
+  Tag
 } from 'lucide-react';
 import { 
   format, 
@@ -33,25 +38,32 @@ import {
   DialogHeader, 
   DialogTitle, 
   DialogTrigger,
-  DialogFooter
+  DialogFooter,
+  DialogDescription
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
 
 export default function CalendarPage() {
   const db = useFirestore();
   const { user: appUser } = useAuth();
   const { toast } = useToast();
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [selectedDayEvents, setSelectedDayEvents] = useState<any[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [loading, setLoading] = useState(false);
 
   const [newEvent, setNewEvent] = useState({
     title: '',
     type: 'Evento',
-    date: format(new Date(), 'yyyy-MM-dd')
+    date: format(new Date(), 'yyyy-MM-dd'),
+    description: ''
   });
 
   const isAdmin = appUser?.role === 'administrador';
@@ -82,6 +94,14 @@ export default function CalendarPage() {
     return events?.filter(event => event.startDate?.startsWith(dateStr)) || [];
   };
 
+  const handleDayClick = (day: Date, dayEvents: any[]) => {
+    if (dayEvents.length > 0) {
+      setSelectedDate(day);
+      setSelectedDayEvents(dayEvents);
+      setIsViewDialogOpen(true);
+    }
+  };
+
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newEvent.title) return;
@@ -92,6 +112,7 @@ export default function CalendarPage() {
       await addDocumentNonBlocking(colRef, {
         title: newEvent.title,
         type: newEvent.type,
+        description: newEvent.description,
         startDate: new Date(newEvent.date).toISOString(),
         endDate: new Date(newEvent.date).toISOString(),
         createdByUserId: appUser?.id || 'admin',
@@ -104,12 +125,32 @@ export default function CalendarPage() {
         description: "O calendário oficial foi atualizado.",
         className: "bg-[#E8F5E9] border-[#4CAF50] text-[#2E7D32]",
       });
-      setIsDialogOpen(false);
-      setNewEvent({ title: '', type: 'Evento', date: format(new Date(), 'yyyy-MM-dd') });
+      setIsCreateDialogOpen(false);
+      setNewEvent({ title: '', type: 'Evento', date: format(new Date(), 'yyyy-MM-dd'), description: '' });
     } catch (error) {
       console.error(error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'Feriado': return "bg-red-500";
+      case 'Reunião': return "bg-emerald-500";
+      case 'Evento': return "bg-blue-500";
+      case 'Aniversário': return "bg-orange-500";
+      default: return "bg-gray-500";
+    }
+  };
+
+  const getTypeStyles = (type: string) => {
+    switch (type) {
+      case 'Feriado': return "bg-red-50 border-red-200 text-red-700";
+      case 'Reunião': return "bg-emerald-50 border-emerald-200 text-emerald-700";
+      case 'Evento': return "bg-blue-50 border-blue-200 text-blue-700";
+      case 'Aniversário': return "bg-orange-50 border-orange-200 text-orange-700";
+      default: return "bg-gray-50 border-gray-200 text-gray-700";
     }
   };
 
@@ -123,7 +164,7 @@ export default function CalendarPage() {
           </div>
           
           {isAdmin && (
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-[#4CAF50] hover:bg-[#43a047] gap-2 rounded-xl shadow-md h-11 px-6">
                   <Plus className="h-5 w-5" />
@@ -167,6 +208,14 @@ export default function CalendarPage() {
                         </SelectContent>
                       </Select>
                     </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Descrição (Opcional)</Label>
+                    <Input 
+                      placeholder="Breve descrição do evento..."
+                      value={newEvent.description}
+                      onChange={e => setNewEvent({...newEvent, description: e.target.value})}
+                    />
                   </div>
                   <DialogFooter>
                     <Button type="submit" disabled={loading} className="w-full bg-[#4CAF50]">
@@ -230,13 +279,17 @@ export default function CalendarPage() {
                 const dayEvents = getEventsForDay(day);
                 const isCurrentMonth = isSameMonth(day, monthStart);
                 const isToday = isSameDay(day, new Date());
+                const hasEvents = dayEvents.length > 0;
 
                 return (
                   <div 
                     key={idx} 
+                    onClick={() => handleDayClick(day, dayEvents)}
                     className={cn(
-                      "min-h-[120px] p-2 border-r border-b last:border-r-0 transition-colors relative group hover:bg-emerald-50/30",
-                      !isCurrentMonth && "bg-gray-50/50 text-gray-400"
+                      "min-h-[120px] p-2 border-r border-b last:border-r-0 transition-all relative group",
+                      !isCurrentMonth && "bg-gray-50/50 text-gray-400",
+                      hasEvents && "cursor-pointer hover:bg-emerald-50/30",
+                      !hasEvents && isCurrentMonth && "hover:bg-gray-50/30"
                     )}
                   >
                     <div className="flex justify-between items-start mb-1">
@@ -247,6 +300,9 @@ export default function CalendarPage() {
                       )}>
                         {format(day, 'd')}
                       </span>
+                      {hasEvents && (
+                        <Info className="h-3 w-3 text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      )}
                     </div>
 
                     <div className="space-y-1">
@@ -255,13 +311,7 @@ export default function CalendarPage() {
                           key={event.id}
                           className={cn(
                             "text-[10px] p-1.5 rounded-md border leading-tight truncate font-bold",
-                            event.type === 'Feriado' 
-                              ? "bg-red-50 border-red-200 text-red-700" 
-                              : event.type === 'Reunião' 
-                                ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                                : event.type === 'Evento'
-                                  ? "bg-blue-50 border-blue-200 text-blue-700"
-                                  : "bg-orange-50 border-orange-200 text-orange-700"
+                            getTypeStyles(event.type)
                           )}
                           title={event.title}
                         >
@@ -278,22 +328,85 @@ export default function CalendarPage() {
 
         <div className="flex flex-wrap gap-6 p-6 bg-white rounded-2xl shadow-sm border text-xs">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-red-400" />
+            <div className="w-3 h-3 rounded-full bg-red-500" />
             <span className="text-gray-600 font-bold uppercase tracking-tight">Feriados</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-emerald-400" />
+            <div className="w-3 h-3 rounded-full bg-emerald-500" />
             <span className="text-gray-600 font-bold uppercase tracking-tight">Reuniões</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-blue-400" />
+            <div className="w-3 h-3 rounded-full bg-blue-500" />
             <span className="text-gray-600 font-bold uppercase tracking-tight">Eventos</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-orange-400" />
+            <div className="w-3 h-3 rounded-full bg-orange-500" />
             <span className="text-gray-600 font-bold uppercase tracking-tight">Aniversários</span>
           </div>
         </div>
+
+        {/* Diálogo de Detalhes do Evento */}
+        <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle className="text-[#2E7D32] flex items-center gap-2">
+                <CalendarIcon className="h-5 w-5" />
+                {selectedDate && format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
+              </DialogTitle>
+              <DialogDescription>
+                Informações detalhadas sobre os compromissos deste dia.
+              </DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="max-h-[60vh] pr-4">
+              <div className="space-y-4 py-4">
+                {selectedDayEvents.map((event) => (
+                  <Card key={event.id} className="border-l-4 shadow-sm" style={{ borderLeftColor: `var(--${event.type === 'Feriado' ? 'red' : event.type === 'Reunião' ? 'emerald' : event.type === 'Evento' ? 'blue' : 'orange'}-500)` }}>
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex justify-between items-start">
+                        <h3 className="font-bold text-gray-900 leading-tight">{event.title}</h3>
+                        <Badge className={cn("text-[10px] uppercase font-bold", getTypeStyles(event.type))}>
+                          {event.type}
+                        </Badge>
+                      </div>
+                      
+                      <div className="space-y-2 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                          <Tag className="h-4 w-4 text-gray-400" />
+                          <span>Categoria: {event.type}</span>
+                        </div>
+                        {event.startDate && (
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-4 w-4 text-gray-400" />
+                            <span>Horário: {format(new Date(event.startDate), "HH:mm")}</span>
+                          </div>
+                        )}
+                        {event.location && (
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4 text-gray-400" />
+                            <span>Local: {event.location}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {event.description && (
+                        <div className="pt-2 border-t mt-2">
+                          <p className="text-xs text-gray-600 leading-relaxed italic">
+                            {event.description}
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </ScrollArea>
+            <DialogFooter>
+              <Button onClick={() => setIsViewDialogOpen(false)} className="w-full bg-[#4CAF50] hover:bg-[#43a047]">
+                Fechar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
