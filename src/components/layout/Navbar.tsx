@@ -64,7 +64,7 @@ export function Navbar() {
       </header>
 
       {/* Menu de Abas (Barra Branca) */}
-      <nav className="bg-white border-b overflow-x-auto">
+      <nav className="bg-white border-b overflow-x-auto py-2">
         <div className="container mx-auto flex items-center gap-2 px-4">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
@@ -73,13 +73,13 @@ export function Navbar() {
                 key={item.href} 
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all whitespace-nowrap border-b-2",
+                  "flex items-center gap-2 px-5 py-2.5 text-sm font-bold transition-all whitespace-nowrap border-2",
                   isActive 
-                    ? "text-[#2E7D32] border-[#4CAF50] bg-emerald-50/50" 
-                    : "text-muted-foreground border-transparent hover:text-[#4CAF50] hover:bg-gray-50"
+                    ? "bg-emerald-50 text-[#2E7D32] border-[#2E7D32] rounded-xl shadow-sm" 
+                    : "text-muted-foreground border-transparent hover:text-[#4CAF50] hover:bg-emerald-50/50 rounded-xl"
                 )}
               >
-                <item.icon className={cn("h-4 w-4", isActive ? "text-[#4CAF50]" : "text-gray-400")} />
+                <item.icon className={cn("h-4 w-4", isActive ? "text-[#2E7D32]" : "text-gray-400")} />
                 <span>{item.name}</span>
               </Link>
             );
