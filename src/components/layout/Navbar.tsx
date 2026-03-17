@@ -15,12 +15,31 @@ import {
   Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { useAuth as useFirebaseAuth, useUser } from '@/firebase';
+import { useEffect } from 'react';
+import { signOut } from 'firebase/auth';
 
 export function Navbar() {
-  const { logout, isAuthenticated, user } = useAuth();
+  const firebaseAuth = useFirebaseAuth();
+  const { user: firebaseUser, isUserLoading } = useUser();
+  const { user, setAuth, logout, isAuthenticated } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    // Sincroniza o estado do Firebase com o store do Zustand
+    if (!isUserLoading) {
+      setAuth(firebaseUser);
+    }
+  }, [firebaseUser, isUserLoading, setAuth]);
+
+  const handleLogout = async () => {
+    await signOut(firebaseAuth);
+    logout();
+    router.push('/');
+  };
 
   const navItems = [
     { name: 'Início', href: '/dashboard', icon: Home },
@@ -54,7 +73,7 @@ export function Navbar() {
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={logout} 
+                onClick={handleLogout} 
                 className="bg-white/10 hover:bg-white/20 text-white border border-white/20 gap-2 px-4"
               >
                 <LogOut className="h-4 w-4" />

@@ -2,8 +2,9 @@
 "use client";
 
 import { create } from 'zustand';
+import { User as FirebaseUser } from 'firebase/auth';
 
-export type UserRole = 'admin' | 'professor';
+export type UserRole = 'administrador' | 'professor';
 
 export interface User {
   id: string;
@@ -16,30 +17,28 @@ export interface User {
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
-  login: (email: string, role: UserRole) => void;
+  setAuth: (firebaseUser: FirebaseUser | null, role?: UserRole) => void;
   logout: () => void;
 }
 
-// Since we can't use real Firebase in this environment, we mock it.
-// In a real app, this would interact with Firebase Auth and Firestore.
 export const useAuth = create<AuthState>((set) => ({
-  user: {
-    id: 'u1',
-    name: 'Ana Silva',
-    email: 'ana.silva@scholarview.edu',
-    role: 'professor',
-    avatar: 'https://picsum.photos/seed/teacher/150/150'
+  user: null,
+  isAuthenticated: false,
+  setAuth: (firebaseUser, role = 'professor') => {
+    if (firebaseUser) {
+      set({
+        user: {
+          id: firebaseUser.uid,
+          name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuário',
+          email: firebaseUser.email || '',
+          role: role,
+          avatar: firebaseUser.photoURL || `https://picsum.photos/seed/${firebaseUser.uid}/150/150`
+        },
+        isAuthenticated: true
+      });
+    } else {
+      set({ user: null, isAuthenticated: false });
+    }
   },
-  isAuthenticated: true,
-  login: (email, role) => set({ 
-    user: { 
-      id: Math.random().toString(), 
-      name: email.split('@')[0], 
-      email, 
-      role,
-      avatar: `https://picsum.photos/seed/${role}/150/150`
-    }, 
-    isAuthenticated: true 
-  }),
   logout: () => set({ user: null, isAuthenticated: false }),
 }));

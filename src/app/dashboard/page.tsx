@@ -7,14 +7,35 @@ import {
   GraduationCap, 
   Calendar as CalendarIcon, 
   TrendingUp, 
-  AlertCircle 
+  AlertCircle,
+  Loader2 
 } from 'lucide-react';
-import { mockClasses, mockStudents, mockEvents } from '@/lib/data';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query, where, orderBy, limit } from 'firebase/firestore';
 
 export default function Dashboard() {
-  const totalClasses = mockClasses.length;
-  const totalStudents = mockStudents.length;
-  const upcomingEvents = mockEvents.slice(0, 3);
+  const db = useFirestore();
+  
+  const coursesQuery = useMemoFirebase(() => collection(db, 'courses'), [db]);
+  const studentsQuery = useMemoFirebase(() => collection(db, 'students'), [db]);
+  const eventsQuery = useMemoFirebase(() => 
+    query(collection(db, 'schoolEvents'), orderBy('startDate', 'asc'), limit(3)), 
+    [db]
+  );
+
+  const { data: courses, isLoading: loadingCourses } = useCollection(coursesQuery);
+  const { data: students, isLoading: loadingStudents } = useCollection(studentsQuery);
+  const { data: events, isLoading: loadingEvents } = useCollection(eventsQuery);
+
+  const isLoading = loadingCourses || loadingStudents || loadingEvents;
+
+  if (isLoading) {
+    return (
+      <div className="flex h-[80vh] items-center justify-center">
+        <Loader2 className="h-12 w-12 text-[#4CAF50] animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-full bg-[#F5F5F5]">
@@ -27,19 +48,19 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard 
             title="Total de Alunos" 
-            value={totalStudents.toString()} 
+            value={students?.length.toString() || '0'} 
             icon={Users} 
             color="bg-emerald-600" 
           />
           <StatCard 
             title="Minhas Turmas" 
-            value={totalClasses.toString()} 
+            value={courses?.length.toString() || '0'} 
             icon={GraduationCap} 
             color="bg-emerald-500" 
           />
           <StatCard 
-            title="Eventos do Mês" 
-            value={mockEvents.length.toString()} 
+            title="Eventos Próximos" 
+            value={events?.length.toString() || '0'} 
             icon={CalendarIcon} 
             color="bg-orange-500" 
           />
@@ -73,15 +94,18 @@ export default function Dashboard() {
                   <CardTitle className="text-lg text-[#2E7D32]">Turmas Recentes</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {mockClasses.map(c => (
+                  {courses?.slice(0, 3).map(c => (
                     <div key={c.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div>
                         <p className="font-semibold text-[#2E7D32]">{c.name}</p>
-                        <p className="text-xs text-muted-foreground">{c.grade}</p>
+                        <p className="text-xs text-muted-foreground">{c.gradeLevel}</p>
                       </div>
                       <span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full">Ativa</span>
                     </div>
                   ))}
+                  {(!courses || courses.length === 0) && (
+                    <p className="text-sm text-center text-muted-foreground">Nenhuma turma cadastrada.</p>
+                  )}
                 </CardContent>
               </Card>
 
@@ -90,9 +114,9 @@ export default function Dashboard() {
                   <CardTitle className="text-lg text-[#2E7D32]">Ações Recomendadas</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <ActionItem text="Registrar frequência: Matemática Avançada" type="warning" />
-                  <ActionItem text="Lançar notas: Física I" type="info" />
-                  <ActionItem text="Gerar relatório de conselho de classe" type="info" />
+                  <ActionItem text="Registrar frequência semanal" type="warning" />
+                  <ActionItem text="Lançar novas notas do bimestre" type="info" />
+                  <ActionItem text="Atualizar perfil institucional" type="info" />
                 </CardContent>
               </Card>
             </div>
@@ -107,21 +131,27 @@ export default function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {upcomingEvents.map(event => {
-                  const day = event.date.split('-')[2];
+                {events?.map(event => {
+                  const date = new Date(event.startDate);
+                  const day = date.getDate().toString().padStart(2, '0');
+                  const month = date.toLocaleString('pt-BR', { month: 'short' }).toUpperCase();
+                  
                   return (
                     <div key={event.id} className="flex gap-4 items-start">
                       <div className="bg-[#4CAF50] text-white px-2 py-1 rounded text-center min-w-[50px]">
                         <span className="text-xs block leading-none">{day}</span>
-                        <span className="text-[10px] uppercase font-bold">Maio</span>
+                        <span className="text-[10px] uppercase font-bold">{month}</span>
                       </div>
                       <div>
                         <p className="text-sm font-semibold">{event.title}</p>
-                        <p className="text-xs text-muted-foreground capitalize">{event.type === 'holiday' ? 'Feriado' : event.type === 'meeting' ? 'Reunião' : 'Prazo'}</p>
+                        <p className="text-xs text-muted-foreground capitalize">{event.type}</p>
                       </div>
                     </div>
                   );
                 })}
+                {(!events || events.length === 0) && (
+                  <p className="text-sm text-center text-muted-foreground py-4">Sem eventos próximos.</p>
+                )}
               </CardContent>
             </Card>
 
@@ -134,7 +164,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm opacity-90">
-                  Lembre-se que o prazo para encerramento do 1º bimestre é dia 30 de Maio. Todas as notas devem estar lançadas no sistema.
+                  Lembre-se que o prazo para encerramento do bimestre está próximo. Todas as notas devem estar lançadas no sistema.
                 </p>
               </CardContent>
             </Card>

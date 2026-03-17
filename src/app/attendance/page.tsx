@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -20,8 +20,10 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import { mockClasses, mockStudents } from '@/lib/data';
-import { Users, Save, CalendarDays, FileSpreadsheet } from 'lucide-react';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { collection, query, where, doc, serverTimestamp } from 'firebase/firestore';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { Users, Save, CalendarDays, FileSpreadsheet, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const months = [
@@ -30,31 +32,67 @@ const months = [
 ];
 
 export default function AttendancePage() {
-  const [selectedClass, setSelectedClass] = useState(mockClasses[0].id);
-  const [selectedMonth, setSelectedMonth] = useState(months[new Date().getMonth()]);
-  const students = mockStudents.filter(s => s.classId === selectedClass);
-  
-  // Estado para armazenar as faltas (ID do aluno -> quantidade)
-  const [absences, setAbsences] = useState<Record<string, string>>(
-    students.reduce((acc, s) => ({ ...acc, [s.id]: '0' }), {})
-  );
-  
+  const db = useFirestore();
+  const { user } = useUser();
   const { toast } = useToast();
+  const [selectedClassId, setSelectedClassId] = useState<string>("");
+  const [selectedMonth, setSelectedMonth] = useState(months[new Date().getMonth()]);
+  const [absences, setAbsences] = useState<Record<string, string>>({});
+
+  const classesQuery = useMemoFirebase(() => collection(db, 'courses'), [db]);
+  const { data: classes, isLoading: loadingClasses } = useCollection(classesQuery);
+
+  useEffect(() => {
+    if (classes && classes.length > 0 && !selectedClassId) {
+      setSelectedClassId(classes[0].id);
+    }
+  }, [classes, selectedClassId]);
+
+  const studentsQuery = useMemoFirebase(() => {
+    if (!selectedClassId) return null;
+    return query(collection(db, 'students'), where('courseIds', 'array-contains', selectedClassId));
+  }, [db, selectedClassId]);
+
+  const { data: students, isLoading: loadingStudents } = useCollection(studentsQuery);
 
   const handleAbsenceChange = (studentId: string, value: string) => {
-    // Apenas números
     if (value === '' || /^\d+$/.test(value)) {
       setAbsences(prev => ({ ...prev, [studentId]: value }));
     }
   };
 
   const handleSave = () => {
+    if (!user || !selectedClassId) return;
+
+    students?.forEach(student => {
+      const absenceCount = absences[student.id] || '0';
+      const attendanceId = `${student.id}-${selectedMonth}-${new Date().getFullYear()}`;
+      const docRef = doc(db, 'attendanceRecords', attendanceId);
+
+      setDocumentNonBlocking(docRef, {
+        id: attendanceId,
+        studentId: student.id,
+        courseId: selectedClassId,
+        date: new Date().toISOString().split('T')[0], // Mês de referência no ID
+        status: parseInt(absenceCount) > 0 ? 'Ausente' : 'Presente',
+        notes: `Total de faltas no mês de ${selectedMonth}: ${absenceCount}`,
+        recordedByProfessorId: user.uid,
+        courseProfessorId: user.uid,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+    });
+
     toast({
       title: "Registro de Faltas Salvo",
-      description: `As faltas do mês de ${selectedMonth} para a turma ${mockClasses.find(c => c.id === selectedClass)?.name} foram atualizadas.`,
+      description: `As faltas do mês de ${selectedMonth} foram atualizadas com sucesso.`,
       className: "bg-[#E8F5E9] border-[#4CAF50] text-[#2E7D32]",
     });
   };
+
+  if (loadingClasses) {
+    return <div className="flex h-[80vh] items-center justify-center"><Loader2 className="animate-spin text-[#4CAF50]" /></div>;
+  }
 
   return (
     <div className="min-h-full bg-[#F5F5F5]">
@@ -76,13 +114,13 @@ export default function AttendancePage() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={selectedClass} onValueChange={setSelectedClass}>
+            <Select value={selectedClassId} onValueChange={setSelectedClassId}>
               <SelectTrigger className="w-64 bg-white">
                 <SelectValue placeholder="Selecione a turma" />
               </SelectTrigger>
               <SelectContent>
-                {mockClasses.map(c => (
-                  <SelectItem key={c.id} value={c.id}>{c.name} ({c.grade})</SelectItem>
+                {classes?.map(c => (
+                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -97,7 +135,7 @@ export default function AttendancePage() {
           <CardHeader className="bg-white border-b flex flex-row items-center justify-between">
             <CardTitle className="text-lg flex items-center gap-2">
               <Users className="h-5 w-5 text-[#4CAF50]" />
-              {mockClasses.find(c => c.id === selectedClass)?.name} - Faltas em {selectedMonth}
+              {classes?.find(c => c.id === selectedClassId)?.name || "Turma"} - Faltas em {selectedMonth}
             </CardTitle>
             <Button variant="outline" size="sm" className="gap-2">
               <FileSpreadsheet className="h-4 w-4" />
@@ -105,46 +143,50 @@ export default function AttendancePage() {
             </Button>
           </CardHeader>
           <CardContent className="p-0">
-            <Table>
-              <TableHeader className="bg-gray-50">
-                <TableRow>
-                  <TableHead className="w-20 text-center">Nº</TableHead>
-                  <TableHead>Nome do Aluno</TableHead>
-                  <TableHead className="w-48 text-center">Quantidade de Faltas</TableHead>
-                  <TableHead className="w-32 text-center">Situação</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {students.map((student, index) => {
-                  const numAbsences = parseInt(absences[student.id] || '0');
-                  const situation = numAbsences > 10 ? 'Atenção' : 'Regular';
-                  
-                  return (
-                    <TableRow key={student.id} className="hover:bg-gray-50 transition-colors">
-                      <TableCell className="text-center font-mono text-muted-foreground">{index + 1}</TableCell>
-                      <TableCell className="font-medium">{student.name}</TableCell>
-                      <TableCell className="text-center">
-                        <Input 
-                          type="text"
-                          inputMode="numeric"
-                          value={absences[student.id] || '0'}
-                          onChange={(e) => handleAbsenceChange(student.id, e.target.value)}
-                          className="w-24 mx-auto text-center font-bold"
-                        />
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {situation === 'Regular' ? (
-                          <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">REGULAR</span>
-                        ) : (
-                          <span className="text-xs font-bold text-red-600 bg-red-50 px-3 py-1 rounded-full">ALERTA</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-            {students.length === 0 && (
+            {loadingStudents ? (
+              <div className="p-12 text-center"><Loader2 className="animate-spin mx-auto text-[#4CAF50]" /></div>
+            ) : (
+              <Table>
+                <TableHeader className="bg-gray-50">
+                  <TableRow>
+                    <TableHead className="w-20 text-center">Nº</TableHead>
+                    <TableHead>Nome do Aluno</TableHead>
+                    <TableHead className="w-48 text-center">Quantidade de Faltas</TableHead>
+                    <TableHead className="w-32 text-center">Situação</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {students?.map((student, index) => {
+                    const numAbsences = parseInt(absences[student.id] || '0');
+                    const situation = numAbsences > 10 ? 'Atenção' : 'Regular';
+                    
+                    return (
+                      <TableRow key={student.id} className="hover:bg-gray-50 transition-colors">
+                        <TableCell className="text-center font-mono text-muted-foreground">{index + 1}</TableCell>
+                        <TableCell className="font-medium">{student.firstName} {student.lastName}</TableCell>
+                        <TableCell className="text-center">
+                          <Input 
+                            type="text"
+                            inputMode="numeric"
+                            value={absences[student.id] || '0'}
+                            onChange={(e) => handleAbsenceChange(student.id, e.target.value)}
+                            className="w-24 mx-auto text-center font-bold"
+                          />
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {situation === 'Regular' ? (
+                            <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">REGULAR</span>
+                          ) : (
+                            <span className="text-xs font-bold text-red-600 bg-red-50 px-3 py-1 rounded-full">ALERTA</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+            {students?.length === 0 && !loadingStudents && (
               <div className="p-12 text-center">
                 <p className="text-muted-foreground italic">Nenhum aluno matriculado nesta turma.</p>
               </div>
