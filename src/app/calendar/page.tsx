@@ -12,7 +12,8 @@ import {
   Info,
   Clock,
   MapPin,
-  Tag
+  Tag,
+  Trash2
 } from 'lucide-react';
 import { 
   format, 
@@ -28,8 +29,8 @@ import {
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, serverTimestamp } from 'firebase/firestore';
-import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { collection, query, serverTimestamp, doc } from 'firebase/firestore';
+import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useAuth } from '@/lib/auth-store';
 import { cn } from '@/lib/utils';
 import { 
@@ -153,6 +154,25 @@ export default function CalendarPage() {
       console.error(error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteEvent = (eventId: string) => {
+    if (!db || !isAdmin) return;
+
+    const docRef = doc(db, 'schoolEvents', eventId);
+    deleteDocumentNonBlocking(docRef);
+
+    toast({
+      title: "Evento Removido",
+      description: "O evento foi excluído do calendário institucional.",
+    });
+
+    // Update local state to reflect deletion immediately if needed, 
+    // though useCollection will sync it.
+    setSelectedDayEvents(prev => prev.filter(e => e.id !== eventId));
+    if (selectedDayEvents.length <= 1) {
+      setIsViewDialogOpen(false);
     }
   };
 
@@ -381,14 +401,25 @@ export default function CalendarPage() {
             <ScrollArea className="max-h-[60vh] pr-4">
               <div className="space-y-4 py-4">
                 {selectedDayEvents.map((event) => (
-                  <Card key={event.id} className="border-l-4 shadow-sm" style={{ borderLeftColor: event.type === 'Feriado' ? '#ef4444' : event.type === 'Reunião' ? '#10b981' : event.type === 'Evento' ? '#3b82f6' : '#f97316' }}>
+                  <Card key={event.id} className="border-l-4 shadow-sm relative group" style={{ borderLeftColor: event.type === 'Feriado' ? '#ef4444' : event.type === 'Reunião' ? '#10b981' : event.type === 'Evento' ? '#3b82f6' : '#f97316' }}>
                     <CardContent className="p-4 space-y-3">
                       <div className="flex justify-between items-start">
-                        <h3 className="font-bold text-gray-900 leading-tight">{event.title}</h3>
+                        <h3 className="font-bold text-gray-900 leading-tight pr-8">{event.title}</h3>
                         <Badge className={cn("text-[10px] uppercase font-bold", getTypeStyles(event.type))}>
                           {event.type}
                         </Badge>
                       </div>
+                      
+                      {isAdmin && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="absolute right-2 top-2 h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50"
+                          onClick={() => handleDeleteEvent(event.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                       
                       <div className="space-y-2 text-sm text-muted-foreground">
                         <div className="flex items-center gap-2">
