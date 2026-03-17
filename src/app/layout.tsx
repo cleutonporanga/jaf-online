@@ -1,4 +1,3 @@
-
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -6,7 +5,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
-  title: 'ScholarView - School Management',
+  title: 'JAF App - School Management',
   description: 'Modern education management system',
 };
 

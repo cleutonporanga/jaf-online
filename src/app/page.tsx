@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -44,7 +43,6 @@ export default function Home() {
     setLoading(true);
     try {
       initiateEmailSignIn(auth, email, password);
-      // O estado de autenticação será atualizado pelo FirebaseProvider e Navbar
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -62,7 +60,7 @@ export default function Home() {
           <div className="bg-white/20 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
             <GraduationCap className="h-12 w-12 text-white" />
           </div>
-          <h1 className="text-3xl font-bold font-headline">ScholarView</h1>
+          <h1 className="text-3xl font-bold font-headline">JAF App</h1>
           <p className="opacity-90 text-sm">JAF 2026 - Gestão Inteligente</p>
         </div>
         

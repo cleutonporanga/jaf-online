@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -257,7 +256,7 @@ export default function Dashboard() {
           </div>
 
           <div className="space-y-8">
-            <Card className="border-none shadow-md">
+            <Card className="border-none shadow-lg">
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2 text-[#2E7D32]">
                   <CalendarIcon className="h-5 w-5 text-[#4CAF50]" />
@@ -308,7 +307,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm opacity-90 leading-relaxed italic">
-                  {noticeData?.text || "Bem-vindo ao ScholarView. Use este espaço para comunicados importantes da instituição."}
+                  {noticeData?.text || "Bem-vindo ao JAF App. Use este espaço para comunicados importantes da instituição."}
                 </p>
                 {noticeData?.updatedAt && (
                   <p className="text-[10px] mt-4 opacity-60 uppercase font-bold text-right">
