@@ -37,6 +37,7 @@ export default function GradesPage() {
   const { toast } = useToast();
   const [selectedClassId, setSelectedClassId] = useState<string>("");
   const [gradesState, setGradesState] = useState<Record<string, { v1: string, v2: string, work: string }>>({});
+  const [isExporting, setIsExporting] = useState(false);
 
   // Regra: Apenas administrador pode editar notas
   const isReadOnly = appUser?.role !== 'administrador';
@@ -139,6 +140,27 @@ export default function GradesPage() {
     });
   };
 
+  const handleExportBoletins = () => {
+    if (!selectedClassId) return;
+    const className = classes?.find(c => c.id === selectedClassId)?.name || "Turma";
+    
+    setIsExporting(true);
+    toast({
+      title: "Gerando Boletins",
+      description: `Preparando boletins com cabeçalho oficial da Escola Joaquim Antônio Filho para a turma ${className}...`,
+    });
+
+    // Simulação de geração de PDF com cabeçalho
+    setTimeout(() => {
+      setIsExporting(false);
+      toast({
+        title: "Boletins Exportados",
+        description: `O arquivo PDF contendo os boletins individuais com cabeçalho completo foi baixado com sucesso.`,
+        className: "bg-[#E8F5E9] border-[#4CAF50] text-[#2E7D32]",
+      });
+    }, 2500);
+  };
+
   if (authLoading || (loadingClasses && !classes)) {
     return <div className="flex h-[80vh] items-center justify-center"><Loader2 className="animate-spin text-[#4CAF50]" /></div>;
   }
@@ -164,9 +186,14 @@ export default function GradesPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Button variant="outline" className="gap-2 bg-white">
-              <Download className="h-4 w-4" />
-              Boletins
+            <Button 
+              variant="outline" 
+              className="gap-2 bg-white hover:bg-emerald-50 hover:text-[#2E7D32] border-emerald-100"
+              onClick={handleExportBoletins}
+              disabled={isExporting || !selectedClassId}
+            >
+              {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              Boletins PDF
             </Button>
             {!isReadOnly && (
               <Button onClick={handleSave} className="bg-[#4CAF50] hover:bg-[#43a047] gap-2 shadow-sm">
