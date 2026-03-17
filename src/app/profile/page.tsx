@@ -55,17 +55,17 @@ export default function ProfilePage() {
                   <Camera className="h-4 w-4" />
                 </button>
               </div>
-              <h2 className="mt-4 text-xl font-bold">{user?.name}</h2>
-              <p className="text-sm text-muted-foreground capitalize">{user?.role}</p>
+              <h2 className="mt-4 text-xl font-bold text-gray-800">{user?.name}</h2>
+              <p className="text-xs text-emerald-600 font-bold uppercase tracking-widest">{user?.role}</p>
               
               <div className="mt-8 w-full border-t pt-6 space-y-4">
                  <div className="flex items-center justify-between text-sm">
                    <span className="text-muted-foreground">ID do Usuário</span>
-                   <span className="font-mono font-medium">{user?.id}</span>
+                   <span className="font-mono font-medium text-xs truncate max-w-[120px]">{user?.id}</span>
                  </div>
                  <div className="flex items-center justify-between text-sm">
                    <span className="text-muted-foreground">Desde</span>
-                   <span className="font-medium">Março 2024</span>
+                   <span className="font-medium">2024</span>
                  </div>
               </div>
             </CardContent>
@@ -89,7 +89,7 @@ export default function ProfilePage() {
                         id="name" 
                         value={name} 
                         onChange={(e) => setName(e.target.value)} 
-                        className="pl-9"
+                        className="pl-9 bg-white"
                       />
                     </div>
                   </div>
@@ -101,7 +101,8 @@ export default function ProfilePage() {
                         id="email" 
                         value={email} 
                         onChange={(e) => setEmail(e.target.value)} 
-                        className="pl-9"
+                        className="pl-9 bg-white"
+                        disabled
                       />
                     </div>
                   </div>
@@ -109,15 +110,15 @@ export default function ProfilePage() {
 
                 <div className="space-y-2">
                   <Label>Tipo de Acesso</Label>
-                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border">
+                  <div className="flex items-center gap-2 p-3 bg-emerald-50 rounded-lg border border-emerald-100">
                     <Shield className="h-4 w-4 text-[#4CAF50]" />
-                    <span className="text-sm font-medium capitalize">{user?.role}</span>
+                    <span className="text-sm font-bold capitalize text-[#2E7D32]">{user?.role}</span>
                   </div>
-                  <p className="text-[10px] text-muted-foreground">O tipo de acesso define quais permissões você possui no sistema ScholarView.</p>
+                  <p className="text-[10px] text-muted-foreground italic">O seu nível de acesso é definido pela administração central.</p>
                 </div>
 
                 <div className="pt-4 flex justify-end">
-                  <Button onClick={handleSave} className="bg-[#4CAF50] hover:bg-[#43a047] gap-2 shadow-sm">
+                  <Button onClick={handleSave} className="bg-[#4CAF50] hover:bg-[#43a047] gap-2 shadow-md px-8">
                     <Save className="h-4 w-4" />
                     Salvar Alterações
                   </Button>
@@ -125,16 +126,16 @@ export default function ProfilePage() {
               </CardContent>
             </Card>
 
-            {user?.role === 'admin' && (
-              <Card className="border-none shadow-md border-t-4 border-[#2E7D32]">
+            {user?.role === 'administrador' && (
+              <Card className="border-none shadow-md border-t-4 border-[#2E7D32] bg-white">
                 <CardHeader>
-                  <CardTitle className="text-lg text-[#2E7D32]">Painel Administrativo</CardTitle>
+                  <CardTitle className="text-lg text-[#2E7D32] font-bold">Gerenciamento Administrativo</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                   <p className="text-sm text-muted-foreground">Como administrador, você pode criar e gerenciar outros usuários.</p>
-                   <Button className="w-full bg-[#2E7D32] hover:bg-[#1b5e20] gap-2">
+                   <p className="text-sm text-muted-foreground">Como administrador central, você tem privilégios para criar contas de professores e gerenciar toda a estrutura escolar.</p>
+                   <Button className="w-full bg-[#2E7D32] hover:bg-[#1b5e20] gap-2 h-11 rounded-xl shadow-lg">
                      <Plus className="h-4 w-4" />
-                     Criar Novo Usuário
+                     Cadastrar Novo Professor
                    </Button>
                 </CardContent>
               </Card>

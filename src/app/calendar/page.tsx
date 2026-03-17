@@ -9,7 +9,9 @@ import {
   ChevronRight, 
   Plus,
   Clock,
-  User
+  User,
+  Loader2,
+  Calendar as CalendarIcon
 } from 'lucide-react';
 import { 
   format, 
@@ -24,11 +26,45 @@ import {
   eachDayOfInterval 
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { mockEvents, mockWeeklySchedule } from '@/lib/data';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query, serverTimestamp } from 'firebase/firestore';
+import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { useAuth } from '@/lib/auth-store';
 import { cn } from '@/lib/utils';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger,
+  DialogFooter
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
 
 export default function CalendarPage() {
+  const db = useFirestore();
+  const { user: appUser } = useAuth();
+  const { toast } = useToast();
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const [newEvent, setNewEvent] = useState({
+    title: '',
+    type: 'Evento Geral',
+    date: format(new Date(), 'yyyy-MM-dd')
+  });
+
+  const isAdmin = appUser?.role === 'administrador';
+
+  const eventsQuery = useMemoFirebase(() => {
+    return query(collection(db, 'schoolEvents'));
+  }, [db]);
+
+  const { data: events, isLoading } = useCollection(eventsQuery);
 
   const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
   const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
@@ -47,7 +83,38 @@ export default function CalendarPage() {
 
   const getEventsForDay = (day: Date) => {
     const dateStr = format(day, 'yyyy-MM-dd');
-    return mockEvents.filter(event => event.date === dateStr);
+    return events?.filter(event => event.startDate?.startsWith(dateStr)) || [];
+  };
+
+  const handleCreateEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newEvent.title) return;
+
+    setLoading(true);
+    try {
+      const colRef = collection(db, 'schoolEvents');
+      await addDocumentNonBlocking(colRef, {
+        title: newEvent.title,
+        type: newEvent.type,
+        startDate: new Date(newEvent.date).toISOString(),
+        endDate: new Date(newEvent.date).toISOString(),
+        createdByUserId: appUser?.id || 'admin',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+
+      toast({
+        title: "Evento Criado",
+        description: "O calendário oficial foi atualizado.",
+        className: "bg-[#E8F5E9] border-[#4CAF50] text-[#2E7D32]",
+      });
+      setIsDialogOpen(false);
+      setNewEvent({ title: '', type: 'Evento Geral', date: format(new Date(), 'yyyy-MM-dd') });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -56,12 +123,64 @@ export default function CalendarPage() {
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-[#2E7D32] font-headline">Calendário Escolar</h1>
-            <p className="text-muted-foreground">Acompanhe e gerencie os eventos da instituição.</p>
+            <p className="text-muted-foreground">Acompanhe os prazos e eventos oficiais da instituição.</p>
           </div>
-          <Button className="bg-[#4CAF50] hover:bg-[#43a047] gap-2 rounded-xl shadow-md h-11 px-6">
-            <Plus className="h-5 w-5" />
-            Novo Evento
-          </Button>
+          
+          {isAdmin && (
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-[#4CAF50] hover:bg-[#43a047] gap-2 rounded-xl shadow-md h-11 px-6">
+                  <Plus className="h-5 w-5" />
+                  Novo Evento
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle className="text-[#2E7D32]">Adicionar Evento</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleCreateEvent} className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label>Título do Evento</Label>
+                    <Input 
+                      placeholder="Ex: Conselho de Classe"
+                      value={newEvent.title}
+                      onChange={e => setNewEvent({...newEvent, title: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Data</Label>
+                      <Input 
+                        type="date"
+                        value={newEvent.date}
+                        onChange={e => setNewEvent({...newEvent, date: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Categoria</Label>
+                      <Select value={newEvent.type} onValueChange={v => setNewEvent({...newEvent, type: v})}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Evento Geral">Evento Geral</SelectItem>
+                          <SelectItem value="Feriado">Feriado</SelectItem>
+                          <SelectItem value="Prazo">Prazo Acadêmico</SelectItem>
+                          <SelectItem value="Reunião">Reunião</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button type="submit" disabled={loading} className="w-full bg-[#4CAF50]">
+                      {loading ? <Loader2 className="animate-spin h-4 w-4" /> : "Publicar no Calendário"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          )}
         </header>
 
         <Card className="border-none shadow-xl overflow-hidden rounded-2xl bg-white">
@@ -97,20 +216,20 @@ export default function CalendarPage() {
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            {/* Dias da Semana */}
             <div className="grid grid-cols-7 bg-emerald-50/50 border-b">
               {weekDays.map((day) => (
-                <div 
-                  key={day} 
-                  className="py-3 text-center text-xs font-bold text-emerald-800 uppercase tracking-wider border-r last:border-r-0"
-                >
+                <div key={day} className="py-3 text-center text-xs font-bold text-emerald-800 uppercase tracking-wider border-r last:border-r-0">
                   {day}
                 </div>
               ))}
             </div>
 
-            {/* Grade de Dias */}
-            <div className="grid grid-cols-7">
+            <div className="grid grid-cols-7 relative">
+              {isLoading && (
+                <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center">
+                  <Loader2 className="h-10 w-10 text-[#4CAF50] animate-spin" />
+                </div>
+              )}
               {calendarDays.map((day, idx) => {
                 const dayEvents = getEventsForDay(day);
                 const isCurrentMonth = isSameMonth(day, monthStart);
@@ -126,7 +245,7 @@ export default function CalendarPage() {
                   >
                     <div className="flex justify-between items-start mb-1">
                       <span className={cn(
-                        "flex items-center justify-center w-7 h-7 text-sm font-bold rounded-full",
+                        "flex items-center justify-center w-7 h-7 text-xs font-bold rounded-full",
                         isToday ? "bg-[#4CAF50] text-white" : "text-gray-700",
                         !isCurrentMonth && "text-gray-300"
                       )}>
@@ -135,14 +254,14 @@ export default function CalendarPage() {
                     </div>
 
                     <div className="space-y-1">
-                      {dayEvents.map((event) => (
+                      {dayEvents.map((event: any) => (
                         <div 
                           key={event.id}
                           className={cn(
-                            "text-[10px] p-1.5 rounded-md border leading-tight truncate font-medium",
-                            event.type === 'holiday' 
+                            "text-[10px] p-1.5 rounded-md border leading-tight truncate font-bold",
+                            event.type === 'Feriado' 
                               ? "bg-orange-50 border-orange-200 text-orange-700" 
-                              : event.type === 'meeting' 
+                              : event.type === 'Reunião' 
                                 ? "bg-emerald-50 border-emerald-200 text-emerald-700"
                                 : "bg-blue-50 border-blue-200 text-blue-700"
                           )}
@@ -159,52 +278,18 @@ export default function CalendarPage() {
           </CardContent>
         </Card>
 
-        {/* Legenda */}
-        <div className="flex flex-wrap gap-6 p-4 bg-white rounded-xl shadow-sm border text-sm">
+        <div className="flex flex-wrap gap-6 p-6 bg-white rounded-2xl shadow-sm border text-xs">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-orange-400" />
-            <span className="text-gray-600 font-medium">Feriados</span>
+            <span className="text-gray-600 font-bold uppercase tracking-tight">Feriados</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-emerald-400" />
-            <span className="text-gray-600 font-medium">Reuniões</span>
+            <span className="text-gray-600 font-bold uppercase tracking-tight">Reuniões</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-blue-400" />
-            <span className="text-gray-600 font-medium">Prazos e Outros</span>
-          </div>
-        </div>
-
-        {/* Horário Escolar Semanal */}
-        <div className="space-y-6">
-          <div className="border-l-4 border-[#4CAF50] pl-4">
-            <h2 className="text-2xl font-bold text-[#2E7D32]">Horário Escolar Semanal</h2>
-            <p className="text-muted-foreground">Confira a programação completa de aulas e professores.</p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            {mockWeeklySchedule.map((dayPlan) => (
-              <Card key={dayPlan.day} className="border-none shadow-md overflow-hidden bg-white">
-                <div className="bg-[#E8F5E9] p-3 border-b">
-                  <h3 className="text-sm font-bold text-[#2E7D32] text-center">{dayPlan.day}</h3>
-                </div>
-                <CardContent className="p-3 space-y-4">
-                  {dayPlan.classes.map((item, idx) => (
-                    <div key={idx} className="space-y-1 pb-3 border-b last:border-b-0 last:pb-0">
-                      <div className="flex items-center gap-1.5 text-[#4CAF50]">
-                        <Clock className="h-3 w-3" />
-                        <span className="text-[10px] font-bold uppercase tracking-wider">{item.time}</span>
-                      </div>
-                      <p className="text-sm font-bold text-gray-800 leading-tight">{item.subject}</p>
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <User className="h-3 w-3" />
-                        <span className="text-[10px] font-medium">{item.teacher}</span>
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            ))}
+            <span className="text-gray-600 font-bold uppercase tracking-tight">Prazos e Geral</span>
           </div>
         </div>
       </main>

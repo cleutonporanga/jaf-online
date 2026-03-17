@@ -12,28 +12,28 @@ import {
 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, limit, where } from 'firebase/firestore';
+import { useAuth } from '@/lib/auth-store';
 
 export default function Dashboard() {
   const db = useFirestore();
-  const { user, isUserLoading: authLoading } = useUser();
+  const { user: firebaseUser, isUserLoading: authLoading } = useUser();
+  const { user: appUser } = useAuth();
   
   const coursesQuery = useMemoFirebase(() => {
-    if (!user) return null;
-    return query(collection(db, 'courses'), where('professorId', '==', user.uid));
-  }, [db, user]);
+    if (!firebaseUser || !appUser) return null;
+    if (appUser.role === 'administrador') return query(collection(db, 'courses'));
+    return query(collection(db, 'courses'), where('professorId', '==', firebaseUser.uid));
+  }, [db, firebaseUser, appUser]);
 
   const studentsQuery = useMemoFirebase(() => {
-    if (!user) return null;
-    return query(collection(db, 'students'), where('professorIds', 'array-contains', user.uid));
-  }, [db, user]);
+    if (!firebaseUser || !appUser) return null;
+    if (appUser.role === 'administrador') return query(collection(db, 'students'));
+    return query(collection(db, 'students'), where('professorIds', 'array-contains', firebaseUser.uid));
+  }, [db, firebaseUser, appUser]);
 
   const eventsQuery = useMemoFirebase(() => {
-    if (!user) return null;
-    return query(
-      collection(db, 'schoolEvents'), 
-      limit(5)
-    );
-  }, [db, user]);
+    return query(collection(db, 'schoolEvents'), limit(5));
+  }, [db]);
 
   const { data: courses, isLoading: loadingCourses } = useCollection(coursesQuery);
   const { data: students, isLoading: loadingStudents } = useCollection(studentsQuery);
@@ -49,7 +49,7 @@ export default function Dashboard() {
     );
   }
 
-  if (!user) {
+  if (!firebaseUser) {
     return (
       <div className="flex h-[80vh] items-center justify-center">
         <p className="text-muted-foreground">Por favor, realize o login para acessar o painel.</p>
@@ -62,7 +62,9 @@ export default function Dashboard() {
       <main className="container mx-auto px-4 py-8 space-y-8">
         <header>
           <h1 className="text-3xl font-bold text-[#2E7D32] font-headline">Painel de Controle</h1>
-          <p className="text-muted-foreground">Bem-vindo(a) ao seu painel de controle ScholarView.</p>
+          <p className="text-muted-foreground text-sm">
+            {appUser?.role === 'administrador' ? 'Visão Geral da Instituição' : 'Bem-vindo(a) ao seu painel de controle ScholarView.'}
+          </p>
         </header>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -73,7 +75,7 @@ export default function Dashboard() {
             color="bg-emerald-600" 
           />
           <StatCard 
-            title="Minhas Turmas" 
+            title={appUser?.role === 'administrador' ? 'Total de Turmas' : 'Minhas Turmas'} 
             value={courses?.length.toString() || '0'} 
             icon={GraduationCap} 
             color="bg-emerald-500" 
@@ -98,7 +100,7 @@ export default function Dashboard() {
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <TrendingUp className="h-5 w-5 text-[#4CAF50]" />
-                  Desempenho por Turma
+                  Desempenho Geral
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -111,20 +113,22 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="border-none shadow-md">
                 <CardHeader>
-                  <CardTitle className="text-lg text-[#2E7D32]">Turmas Recentes</CardTitle>
+                  <CardTitle className="text-lg text-[#2E7D32]">
+                    {appUser?.role === 'administrador' ? 'Turmas Recentes' : 'Minhas Turmas'}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {courses?.slice(0, 3).map(c => (
+                  {courses?.slice(0, 4).map(c => (
                     <div key={c.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div>
-                        <p className="font-semibold text-[#2E7D32]">{c.name}</p>
-                        <p className="text-xs text-muted-foreground">{c.gradeLevel}</p>
+                        <p className="font-semibold text-[#2E7D32] text-sm">{c.name}</p>
+                        <p className="text-[10px] text-muted-foreground uppercase">{c.gradeLevel}</p>
                       </div>
-                      <span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full">Ativa</span>
+                      <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full font-bold">ATIVA</span>
                     </div>
                   ))}
                   {(!courses || courses.length === 0) && (
-                    <p className="text-sm text-center text-muted-foreground">Nenhuma turma cadastrada sob sua supervisão.</p>
+                    <p className="text-sm text-center text-muted-foreground">Nenhuma turma cadastrada.</p>
                   )}
                 </CardContent>
               </Card>
@@ -183,8 +187,8 @@ export default function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm opacity-90">
-                  Lembre-se que o prazo para encerramento do bimestre está próximo. Todas as notas devem estar lançadas no sistema.
+                <p className="text-sm opacity-90 leading-relaxed">
+                  Atenção: O prazo para encerramento do bimestre letivo está chegando. Certifique-se de que todos os diários de classe estejam em dia.
                 </p>
               </CardContent>
             </Card>
@@ -201,7 +205,7 @@ function StatCard({ title, value, icon: Icon, color }: { title: string, value: s
       <CardContent className="pt-6">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-muted-foreground font-medium">{title}</p>
+            <p className="text-xs text-muted-foreground font-bold uppercase tracking-tight">{title}</p>
             <h3 className="text-2xl font-bold mt-1 text-gray-800">{value}</h3>
           </div>
           <div className={`${color} p-3 rounded-xl text-white`}>
@@ -217,7 +221,7 @@ function ActionItem({ text, type }: { text: string, type: 'warning' | 'info' }) 
   return (
     <div className={`p-3 rounded-lg flex items-center gap-3 ${type === 'warning' ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'}`}>
       <AlertCircle className="h-4 w-4" />
-      <span className="text-sm font-medium">{text}</span>
+      <span className="text-xs font-bold">{text}</span>
     </div>
   );
 }
