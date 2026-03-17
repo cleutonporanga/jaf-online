@@ -7,12 +7,10 @@ import { Button } from '@/components/ui/button';
 import { 
   Sparkles, 
   BrainCircuit, 
-  RefreshCcw, 
   TrendingUp, 
   Target, 
   Loader2,
-  GraduationCap,
-  AlertCircle
+  GraduationCap
 } from 'lucide-react';
 import { generatePerformanceHighlights, AiPerformanceHighlightsGenerationOutput } from '@/ai/flows/ai-performance-highlights-generation';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
@@ -32,7 +30,7 @@ export default function AIInsightsPage() {
   const isAdmin = appUser?.role === 'administrador';
 
   const coursesQuery = useMemoFirebase(() => {
-    if (!firebaseUser || !appUser) return null;
+    if (!db || !firebaseUser || !appUser) return null;
     if (isAdmin) return query(collection(db, 'courses'));
     return query(collection(db, 'courses'), where('professorId', '==', firebaseUser.uid));
   }, [db, firebaseUser, appUser, isAdmin]);
@@ -46,11 +44,10 @@ export default function AIInsightsPage() {
   }, [courses, selectedClass]);
 
   const handleGenerate = async () => {
-    if (!selectedClass) return;
+    if (!db || !selectedClass) return;
     
     setLoading(true);
     try {
-      // Fetch students for the class
       const studentsSnap = await getDocs(query(collection(db, 'students'), where('courseIds', 'array-contains', selectedClass)));
       const studentsList = studentsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
@@ -58,8 +55,7 @@ export default function AIInsightsPage() {
         throw new Error("Nenhum aluno matriculado nesta turma para análise.");
       }
 
-      // Prepare data for Genkit flow
-      const studentData = studentsList.map(s => ({
+      const studentData = studentsList.map((s: any) => ({
         id: s.id,
         name: `${s.firstName} ${s.lastName}`,
         grades: [

@@ -24,7 +24,7 @@ import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebas
 import { useAuth } from '@/lib/auth-store';
 import { collection, query, where, doc, serverTimestamp } from 'firebase/firestore';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { Calculator, Save, Download, Plus, Loader2, AlertTriangle } from 'lucide-react';
+import { Save, Download, Loader2, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSearchParams } from 'next/navigation';
 
@@ -42,7 +42,8 @@ function GradesContent() {
   const isReadOnly = appUser?.role !== 'administrador';
 
   const classesQuery = useMemoFirebase(() => {
-    return query(collection(db!, 'courses'));
+    if (!db) return null;
+    return query(collection(db, 'courses'));
   }, [db]);
 
   const { data: classes, isLoading: loadingClasses } = useCollection(classesQuery);

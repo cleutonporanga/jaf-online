@@ -44,12 +44,11 @@ export default function MeetingsPage() {
   
   const [selectedClassId, setSelectedClassId] = useState<string>("");
   
-  // Regra: Apenas administrador pode registrar presença de pais
   const isReadOnly = appUser?.role !== 'administrador';
-  const today = new Date().toISOString().split('T')[0];
+  const today = useMemo(() => new Date().toISOString().split('T')[0], []);
 
   const classesQuery = useMemoFirebase(() => {
-    if (!firebaseUser || !appUser) return null;
+    if (!db || !firebaseUser || !appUser) return null;
     if (appUser.role === 'administrador' || appUser.role === 'aluno') {
       return query(collection(db, 'courses'));
     }
@@ -65,7 +64,7 @@ export default function MeetingsPage() {
   }, [classes, selectedClassId]);
 
   const studentsQuery = useMemoFirebase(() => {
-    if (!firebaseUser || !selectedClassId) return null;
+    if (!db || !firebaseUser || !selectedClassId) return null;
     return query(collection(db, 'students'), where('courseIds', 'array-contains', selectedClassId));
   }, [db, firebaseUser, selectedClassId]);
 
@@ -74,7 +73,7 @@ export default function MeetingsPage() {
   const [attendance, setAttendance] = useState<Record<string, { present: boolean, observation: string }>>({});
 
   const meetingRecordsQuery = useMemoFirebase(() => {
-    if (!selectedClassId) return null;
+    if (!db || !selectedClassId) return null;
     return query(collection(db, 'meetingAttendance'), where('courseId', '==', selectedClassId), where('date', '==', today));
   }, [db, selectedClassId, today]);
 
@@ -126,7 +125,7 @@ export default function MeetingsPage() {
   }, [students, attendance]);
 
   const handleSave = () => {
-    if (isReadOnly || !firebaseUser || !selectedClassId) return;
+    if (isReadOnly || !firebaseUser || !selectedClassId || !db) return;
 
     students?.forEach(student => {
       const record = attendance[student.id] || { present: false, observation: '' };

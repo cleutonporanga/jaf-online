@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -36,6 +37,15 @@ export default function Home() {
         variant: "destructive",
         title: "Erro de validação",
         description: "Preencha todos os campos."
+      });
+      return;
+    }
+
+    if (!auth) {
+      toast({
+        variant: "destructive",
+        title: "Sistema Indisponível",
+        description: "O serviço de autenticação ainda não foi carregado. Tente novamente em instantes."
       });
       return;
     }

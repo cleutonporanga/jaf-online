@@ -24,7 +24,7 @@ import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebas
 import { useAuth } from '@/lib/auth-store';
 import { collection, query, where, doc, serverTimestamp } from 'firebase/firestore';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { Users, Save, CalendarDays, FileSpreadsheet, Loader2, AlertTriangle } from 'lucide-react';
+import { Users, Save, CalendarDays, FileSpreadsheet, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSearchParams } from 'next/navigation';
 
@@ -48,7 +48,8 @@ function AttendanceContent() {
   const isReadOnly = appUser?.role !== 'administrador';
 
   const classesQuery = useMemoFirebase(() => {
-    return query(collection(db!, 'courses'));
+    if (!db) return null;
+    return query(collection(db, 'courses'));
   }, [db]);
   
   const { data: classes, isLoading: loadingClasses } = useCollection(classesQuery);
@@ -74,7 +75,7 @@ function AttendanceContent() {
       collection(db, 'attendanceRecords'), 
       where('courseId', '==', selectedClassId)
     );
-  }, [db, selectedClassId]);
+  }, [db, selectedClassId, selectedMonth]);
 
   const { data: existingAttendance } = useCollection(attendanceQuery);
 
@@ -84,7 +85,7 @@ function AttendanceContent() {
       const currentYear = new Date().getFullYear();
       
       existingAttendance.forEach(record => {
-        if (record.id.includes(`-${selectedMonth}-${currentYear}`)) {
+        if (record.id && record.id.includes(`-${selectedMonth}-${currentYear}`)) {
           const match = record.notes?.match(/:\s(\d+)/);
           if (match) {
             newState[record.studentId] = match[1];
