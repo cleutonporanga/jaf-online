@@ -37,16 +37,19 @@ export default function Dashboard() {
   const [noticeDialogOpen, setNoticeDialogOpen] = useState(false);
   const [newNoticeText, setNewNoticeText] = useState("");
 
+  const isAdmin = appUser?.role === 'administrador';
+
   const coursesQuery = useMemoFirebase(() => {
     if (!firebaseUser || !appUser) return null;
-    if (appUser.role === 'administrador') return query(collection(db, 'courses'));
+    if (isAdmin) return query(collection(db, 'courses'));
     return query(collection(db, 'courses'), where('professorId', '==', firebaseUser.uid));
-  }, [db, firebaseUser, appUser]);
+  }, [db, firebaseUser, appUser, isAdmin]);
 
   const studentsQuery = useMemoFirebase(() => {
     if (!firebaseUser || !appUser) return null;
-    if (appUser.role === 'administrador') return query(collection(db, 'students'));
-    return query(collection(db, 'students'), where('courseIds', 'array-contains-any', ['any'])); // Placeholder for staff logic
+    // For prototype simplicity, staff can see all students. 
+    // In production, we would filter by courseIds.
+    return query(collection(db, 'students'));
   }, [db, firebaseUser, appUser]);
 
   const eventsQuery = useMemoFirebase(() => {
@@ -63,14 +66,13 @@ export default function Dashboard() {
   const { data: noticeData, isLoading: loadingNotice } = useDoc(noticeDocRef);
 
   const isLoading = authLoading || loadingCourses || loadingStudents || loadingEvents || loadingNotice;
-  const isAdmin = appUser?.role === 'administrador';
 
   const handleUpdateNotice = () => {
     if (!isAdmin || !newNoticeText.trim()) return;
 
     setDocumentNonBlocking(noticeDocRef, {
       text: newNoticeText,
-      updatedBy: appUser.name,
+      updatedBy: appUser?.name || 'Admin',
       updatedAt: serverTimestamp()
     }, { merge: true });
 

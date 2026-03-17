@@ -38,8 +38,7 @@ service cloud.firestore {
     // --- Collection Rules ---
 
     match /userProfiles/{userId} {
-      allow get: if isSignedIn();
-      allow list: if isAdmin();
+      allow get, list: if isSignedIn();
       allow create: if isOwner(userId) || isAdmin();
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
