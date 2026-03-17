@@ -1,7 +1,7 @@
 {
-  "name": "JAF Online - Escola Joaquim Antônio Filho",
+  "name": "JAF Online",
   "short_name": "JAF Online",
-  "description": "Sistema de Gestão Escolar da Escola Joaquim Antônio Filho",
+  "description": "Sistema de Gestão Escolar - Escola Joaquim Antônio Filho",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F5F5F5",
@@ -16,8 +16,7 @@
     {
       "src": "https://picsum.photos/seed/jaf1/512/512",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     }
   ]
 }
