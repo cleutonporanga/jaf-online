@@ -11,7 +11,8 @@ import {
   FileEdit,
   Trophy,
   User as UserIcon,
-  LogOut
+  LogOut,
+  Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePathname } from 'next/navigation';
@@ -27,6 +28,7 @@ export function Navbar() {
     { name: 'Turmas', href: '/classes', icon: GraduationCap },
     { name: 'Frequência', href: '/attendance', icon: BarChart3 },
     { name: 'Médias', href: '/grades', icon: FileEdit },
+    { name: 'Reunião', href: '/meetings', icon: Users },
     { name: 'Destaques', href: '/ai-insights', icon: Trophy },
     { name: 'Perfil', href: '/profile', icon: UserIcon },
   ];
