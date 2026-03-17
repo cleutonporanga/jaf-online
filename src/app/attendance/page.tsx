@@ -41,15 +41,13 @@ export default function AttendancePage() {
   const [selectedMonth, setSelectedMonth] = useState(months[new Date().getMonth()]);
   const [absences, setAbsences] = useState<Record<string, string>>({});
 
-  const isReadOnly = appUser?.role === 'aluno';
+  // Regra: Apenas administrador pode editar
+  const isReadOnly = appUser?.role !== 'administrador';
 
+  // Busca todas as turmas
   const classesQuery = useMemoFirebase(() => {
-    if (!firebaseUser) return null;
-    if (appUser?.role === 'administrador' || appUser?.role === 'aluno') {
-      return query(collection(db, 'courses'));
-    }
-    return query(collection(db, 'courses'), where('professorId', '==', firebaseUser.uid));
-  }, [db, firebaseUser, appUser]);
+    return query(collection(db, 'courses'));
+  }, [db]);
   
   const { data: classes, isLoading: loadingClasses } = useCollection(classesQuery);
 
@@ -59,12 +57,46 @@ export default function AttendancePage() {
     }
   }, [classes, selectedClassId]);
 
+  // Busca alunos da turma selecionada
   const studentsQuery = useMemoFirebase(() => {
-    if (!firebaseUser || !selectedClassId) return null;
+    if (!selectedClassId) return null;
     return query(collection(db, 'students'), where('courseIds', 'array-contains', selectedClassId));
-  }, [db, firebaseUser, selectedClassId]);
+  }, [db, selectedClassId]);
 
   const { data: students, isLoading: loadingStudents } = useCollection(studentsQuery);
+
+  // Busca registros de falta existentes para a turma e o mês selecionado
+  const attendanceQuery = useMemoFirebase(() => {
+    if (!selectedClassId || !selectedMonth) return null;
+    // Buscamos pela turma e identificamos o mês pela nota ou data
+    return query(
+      collection(db, 'attendanceRecords'), 
+      where('courseId', '==', selectedClassId)
+    );
+  }, [db, selectedClassId]);
+
+  const { data: existingAttendance } = useCollection(attendanceQuery);
+
+  // Sincroniza o estado local com os dados do Firestore ao mudar turma ou mês
+  useEffect(() => {
+    if (existingAttendance && students) {
+      const newState: Record<string, string> = {};
+      const currentYear = new Date().getFullYear();
+      
+      existingAttendance.forEach(record => {
+        // O ID que geramos é: ${studentId}-${selectedMonth}-${year}
+        if (record.id.includes(`-${selectedMonth}-${currentYear}`)) {
+          // Extraímos a quantidade de faltas das notas ou poderíamos ter um campo dedicado
+          // Como no save anterior salvamos na 'notes', vamos tentar extrair ou usar um valor padrão
+          const match = record.notes?.match(/:\s(\d+)/);
+          if (match) {
+            newState[record.studentId] = match[1];
+          }
+        }
+      });
+      setAbsences(newState);
+    }
+  }, [existingAttendance, students, selectedMonth]);
 
   const handleAbsenceChange = (studentId: string, value: string) => {
     if (isReadOnly) return;
@@ -74,12 +106,13 @@ export default function AttendancePage() {
   };
 
   const handleSave = () => {
-    if (isReadOnly) return;
-    if (!firebaseUser || !selectedClassId) return;
+    if (isReadOnly || !firebaseUser || !selectedClassId) return;
+
+    const currentYear = new Date().getFullYear();
 
     students?.forEach(student => {
       const absenceCount = absences[student.id] || '0';
-      const attendanceId = `${student.id}-${selectedMonth}-${new Date().getFullYear()}`;
+      const attendanceId = `${student.id}-${selectedMonth}-${currentYear}`;
       const docRef = doc(db, 'attendanceRecords', attendanceId);
 
       setDocumentNonBlocking(docRef, {
@@ -89,8 +122,7 @@ export default function AttendancePage() {
         date: new Date().toISOString().split('T')[0],
         status: parseInt(absenceCount) > 0 ? 'Ausente' : 'Presente',
         notes: `Total de faltas no mês de ${selectedMonth}: ${absenceCount}`,
-        recordedByProfessorId: firebaseUser.uid,
-        courseProfessorId: firebaseUser.uid,
+        recordedByUserId: firebaseUser.uid,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       }, { merge: true });
@@ -98,21 +130,13 @@ export default function AttendancePage() {
 
     toast({
       title: "Registro de Faltas Salvo",
-      description: `As faltas do mês de ${selectedMonth} foram atualizadas com sucesso.`,
+      description: `As faltas de ${selectedMonth} foram atualizadas com sucesso.`,
       className: "bg-[#E8F5E9] border-[#4CAF50] text-[#2E7D32]",
     });
   };
 
   if (authLoading || (loadingClasses && !classes)) {
     return <div className="flex h-[80vh] items-center justify-center"><Loader2 className="animate-spin text-[#4CAF50]" /></div>;
-  }
-
-  if (!firebaseUser) {
-    return (
-      <div className="flex h-[80vh] items-center justify-center">
-        <p className="text-muted-foreground">Por favor, realize o login para acessar a frequência.</p>
-      </div>
-    );
   }
 
   return (
@@ -123,8 +147,8 @@ export default function AttendancePage() {
             <h1 className="text-3xl font-bold text-[#2E7D32] font-headline">Frequência Mensal</h1>
             <p className="text-muted-foreground">
               {isReadOnly 
-                ? "Visualizando registro de faltas da turma." 
-                : "Registre o total de faltas dos alunos no mês selecionado."}
+                ? "Visualizando registro oficial de faltas." 
+                : "Controle de faltas mensal exclusivo para administração."}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -161,7 +185,7 @@ export default function AttendancePage() {
         {isReadOnly && (
           <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-3 text-amber-800">
             <AlertTriangle className="h-5 w-5" />
-            <p className="text-sm font-medium">Você está acessando como visualizador. Edições não são permitidas.</p>
+            <p className="text-sm font-medium">Apenas administradores podem registrar ou alterar faltas.</p>
           </div>
         )}
 
@@ -173,7 +197,7 @@ export default function AttendancePage() {
             </CardTitle>
             <Button variant="outline" size="sm" className="gap-2">
               <FileSpreadsheet className="h-4 w-4" />
-              Exportar Relatório
+              Exportar
             </Button>
           </CardHeader>
           <CardContent className="p-0">
@@ -185,7 +209,7 @@ export default function AttendancePage() {
                   <TableRow>
                     <TableHead className="w-20 text-center">Nº</TableHead>
                     <TableHead>Nome do Aluno</TableHead>
-                    <TableHead className="w-48 text-center">Quantidade de Faltas</TableHead>
+                    <TableHead className="w-48 text-center">Total de Faltas</TableHead>
                     <TableHead className="w-32 text-center">Situação</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -223,7 +247,7 @@ export default function AttendancePage() {
             )}
             {students?.length === 0 && !loadingStudents && (
               <div className="p-12 text-center">
-                <p className="text-muted-foreground italic">Nenhum aluno matriculado nesta turma ou permissão insuficiente.</p>
+                <p className="text-muted-foreground italic">Nenhum aluno matriculado nesta turma.</p>
               </div>
             )}
           </CardContent>

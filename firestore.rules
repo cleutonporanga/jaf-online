@@ -64,7 +64,7 @@ service cloud.firestore {
 
     match /attendanceRecords/{attendanceId} {
       allow list, get: if isSignedIn();
-      allow create, update: if isStaff();
+      allow create, update: if isAdmin(); // Apenas administrador pode editar faltas
       allow delete: if isAdmin();
     }
 
@@ -76,7 +76,7 @@ service cloud.firestore {
 
     match /gradeRecords/{gradeId} {
       allow list, get: if isSignedIn();
-      allow create, update: if isStaff();
+      allow create, update: if isAdmin(); // Apenas administrador pode editar notas
       allow delete: if isAdmin();
     }
 

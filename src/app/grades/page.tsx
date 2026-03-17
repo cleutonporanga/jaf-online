@@ -35,15 +35,12 @@ export default function GradesPage() {
   const [selectedClassId, setSelectedClassId] = useState<string>("");
   const [gradesState, setGradesState] = useState<Record<string, { v1: string, v2: string, work: string }>>({});
 
-  const isReadOnly = appUser?.role === 'aluno';
+  // Regra: Apenas administrador pode editar notas
+  const isReadOnly = appUser?.role !== 'administrador';
 
   const classesQuery = useMemoFirebase(() => {
-    if (!firebaseUser) return null;
-    if (appUser?.role === 'administrador' || appUser?.role === 'aluno') {
-      return query(collection(db, 'courses'));
-    }
-    return query(collection(db, 'courses'), where('professorId', '==', firebaseUser.uid));
-  }, [db, firebaseUser, appUser]);
+    return query(collection(db, 'courses'));
+  }, [db]);
 
   const { data: classes, isLoading: loadingClasses } = useCollection(classesQuery);
 
@@ -54,9 +51,9 @@ export default function GradesPage() {
   }, [classes, selectedClassId]);
 
   const studentsQuery = useMemoFirebase(() => {
-    if (!firebaseUser || !selectedClassId) return null;
+    if (!selectedClassId) return null;
     return query(collection(db, 'students'), where('courseIds', 'array-contains', selectedClassId));
-  }, [db, firebaseUser, selectedClassId]);
+  }, [db, selectedClassId]);
 
   const { data: students, isLoading: loadingStudents } = useCollection(studentsQuery);
 
@@ -119,7 +116,7 @@ export default function GradesPage() {
           value: parseFloat(val.replace(',', '.')),
           activityName: type,
           date: new Date().toISOString().split('T')[0],
-          recordedByProfessorId: firebaseUser.uid,
+          recordedByUserId: firebaseUser.uid,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         }, { merge: true });
@@ -132,7 +129,7 @@ export default function GradesPage() {
 
     toast({
       title: "Notas Atualizadas",
-      description: "As alterações foram salvas com sucesso no sistema.",
+      description: "As notas foram salvas com sucesso pela administração.",
       className: "bg-[#E8F5E9] border-[#4CAF50] text-[#2E7D32]",
     });
   };
@@ -148,7 +145,7 @@ export default function GradesPage() {
           <div>
             <h1 className="text-3xl font-bold text-[#2E7D32] font-headline">Gestão de Notas</h1>
             <p className="text-muted-foreground">
-              {isReadOnly ? "Visualizando desempenho acadêmico." : "Insira e acompanhe o desempenho acadêmico."}
+              {isReadOnly ? "Visualizando desempenho acadêmico oficial." : "Lançamento de notas exclusivo para administração."}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -178,7 +175,7 @@ export default function GradesPage() {
         {isReadOnly && (
           <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-3 text-amber-800">
             <AlertTriangle className="h-5 w-5" />
-            <p className="text-sm font-medium">Você está acessando como visualizador. Edições não são permitidas.</p>
+            <p className="text-sm font-medium">Apenas administradores podem lançar ou alterar notas.</p>
           </div>
         )}
 
@@ -187,12 +184,6 @@ export default function GradesPage() {
             <CardTitle className="text-lg">
               Tabela de Notas - {classes?.find(c => c.id === selectedClassId)?.name || "Turma"}
             </CardTitle>
-            {!isReadOnly && (
-              <Button size="sm" variant="ghost" className="text-[#2E7D32] hover:bg-emerald-50 gap-1">
-                <Plus className="h-4 w-4" />
-                Nova Avaliação
-              </Button>
-            )}
           </CardHeader>
           <CardContent className="p-0 overflow-x-auto">
             {loadingStudents ? (
@@ -257,51 +248,6 @@ export default function GradesPage() {
             )}
           </CardContent>
         </Card>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <Card className="border-none shadow-md">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Calculator className="h-5 w-5 text-[#4CAF50]" />
-                Distribuição de Notas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-48 flex items-end gap-4 justify-center pb-4">
-                <div className="w-12 bg-red-400 rounded-t-lg" style={{ height: '20%' }} />
-                <div className="w-12 bg-amber-400 rounded-t-lg" style={{ height: '35%' }} />
-                <div className="w-12 bg-[#4CAF50] rounded-t-lg" style={{ height: '75%' }} />
-                <div className="w-12 bg-emerald-600 rounded-t-lg" style={{ height: '45%' }} />
-              </div>
-              <div className="flex justify-center gap-8 text-xs font-medium text-muted-foreground">
-                <span>0-5</span>
-                <span>5-7</span>
-                <span>7-9</span>
-                <span>9-10</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-none shadow-md bg-emerald-50">
-            <CardHeader>
-              <CardTitle className="text-[#2E7D32]">Resumo da Turma</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Média da Turma:</span>
-                <span className="text-lg font-bold text-[#2E7D32]">7.8</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Acima da Média:</span>
-                <span className="text-lg font-bold text-[#2E7D32]">85%</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Alunos em Recuperação:</span>
-                <span className="text-lg font-bold text-red-600">2</span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
       </main>
     </div>
   );
