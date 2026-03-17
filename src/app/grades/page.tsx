@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, Suspense } from 'react';
@@ -38,6 +37,11 @@ function GradesContent() {
   const [selectedClassId, setSelectedClassId] = useState<string>("");
   const [gradesState, setGradesState] = useState<Record<string, { v1: string, v2: string, work: string }>>({});
   const [isExporting, setIsExporting] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const isReadOnly = appUser?.role !== 'administrador';
 
@@ -71,7 +75,7 @@ function GradesContent() {
   const { data: existingGrades } = useCollection(gradesQuery);
 
   useEffect(() => {
-    if (existingGrades && students) {
+    if (existingGrades && students && mounted) {
       const newState: Record<string, { v1: string, v2: string, work: string }> = {};
       existingGrades.forEach(g => {
         if (!newState[g.studentId]) newState[g.studentId] = { v1: '', v2: '', work: '' };
@@ -81,7 +85,7 @@ function GradesContent() {
       });
       setGradesState(newState);
     }
-  }, [existingGrades, students]);
+  }, [existingGrades, students, mounted]);
 
   const handleGradeChange = (studentId: string, field: 'v1' | 'v2' | 'work', value: string) => {
     if (isReadOnly) return;
@@ -160,7 +164,7 @@ function GradesContent() {
     }, 2500);
   };
 
-  if (authLoading || (loadingClasses && !classes)) {
+  if (!mounted || authLoading || (loadingClasses && !classes)) {
     return <div className="flex h-[80vh] items-center justify-center"><Loader2 className="animate-spin text-[#4CAF50]" /></div>;
   }
 

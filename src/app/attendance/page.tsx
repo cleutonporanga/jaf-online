@@ -47,7 +47,9 @@ function AttendanceContent() {
 
   useEffect(() => {
     setMounted(true);
-    setSelectedMonth(months[new Date().getMonth()]);
+    // Initialize month and year on mount to avoid hydration mismatch
+    const now = new Date();
+    setSelectedMonth(months[now.getMonth()]);
   }, []);
 
   const isReadOnly = appUser?.role !== 'administrador';
@@ -85,7 +87,7 @@ function AttendanceContent() {
   const { data: existingAttendance } = useCollection(attendanceQuery);
 
   useEffect(() => {
-    if (existingAttendance && students && selectedMonth) {
+    if (existingAttendance && students && selectedMonth && mounted) {
       const newState: Record<string, string> = {};
       const currentYear = new Date().getFullYear();
       
@@ -99,7 +101,7 @@ function AttendanceContent() {
       });
       setAbsences(newState);
     }
-  }, [existingAttendance, students, selectedMonth]);
+  }, [existingAttendance, students, selectedMonth, mounted]);
 
   const handleAbsenceChange = (studentId: string, value: string) => {
     if (isReadOnly) return;

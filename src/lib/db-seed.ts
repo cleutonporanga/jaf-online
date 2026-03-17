@@ -1,5 +1,4 @@
-
-import { Firestore, doc, collection, setDoc, serverTimestamp } from 'firebase/firestore';
+import { Firestore, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 export async function seedDatabase(db: Firestore) {
   try {

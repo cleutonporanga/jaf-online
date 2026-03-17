@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   Users, 
@@ -45,12 +45,17 @@ export default function Dashboard() {
   const { user: firebaseUser, isUserLoading: authLoading } = useUser();
   const { user: appUser } = useAuth();
   const { toast } = useToast();
+  const [mounted, setMounted] = useState(false);
   
   const [noticeDialogOpen, setNoticeDialogOpen] = useState(false);
   const [actionsDialogOpen, setActionsDialogOpen] = useState(false);
   const [newNoticeText, setNewNoticeText] = useState("");
   
   const [newAction, setNewAction] = useState({ text: "", type: "info" });
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const isAdmin = appUser?.role === 'administrador';
 
@@ -86,7 +91,7 @@ export default function Dashboard() {
   const { data: noticeData, isLoading: loadingNotice } = useDoc(noticeDocRef);
   const { data: recommendedActions, isLoading: loadingActions } = useCollection(actionsQuery);
 
-  const isLoading = authLoading || loadingCourses || loadingStudents || loadingEvents || loadingNotice || loadingActions;
+  const isLoading = !mounted || authLoading || loadingCourses || loadingStudents || loadingEvents || loadingNotice || loadingActions;
 
   const handleUpdateNotice = () => {
     if (!isAdmin || !newNoticeText.trim() || !noticeDocRef) return;

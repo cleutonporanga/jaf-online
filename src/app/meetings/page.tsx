@@ -85,7 +85,7 @@ export default function MeetingsPage() {
   const { data: existingRecords } = useCollection(meetingRecordsQuery);
 
   useEffect(() => {
-    if (existingRecords) {
+    if (existingRecords && mounted) {
       const newState: Record<string, { present: boolean, observation: string }> = {};
       existingRecords.forEach(record => {
         newState[record.studentId] = {
@@ -95,7 +95,7 @@ export default function MeetingsPage() {
       });
       setAttendance(newState);
     }
-  }, [existingRecords]);
+  }, [existingRecords, mounted]);
 
   const handleTogglePresence = (studentId: string) => {
     if (isReadOnly) return;
@@ -210,7 +210,7 @@ export default function MeetingsPage() {
                 <Users className="h-5 w-5 text-[#4CAF50]" />
                 Lista de Presença - {classes?.find(c => c.id === selectedClassId)?.name || "Turma"}
               </CardTitle>
-              <CardDescription>Participação dos pais na reunião de hoje ({new Date().toLocaleDateString('pt-BR')}).</CardDescription>
+              <CardDescription>Participação dos pais na reunião de hoje ({mounted ? new Date().toLocaleDateString('pt-BR') : ''}).</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               {loadingStudents ? (
