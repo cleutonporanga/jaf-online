@@ -307,7 +307,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm opacity-90 leading-relaxed italic">
-                  {noticeData?.text || "Bem-vindo ao JAF App. Use este espaço para comunicados importantes da instituição."}
+                  {noticeData?.text || "Bem-vindo ao JAF Online. Use este espaço para comunicados importantes da instituição."}
                 </p>
                 {noticeData?.updatedAt && (
                   <p className="text-[10px] mt-4 opacity-60 uppercase font-bold text-right">

@@ -5,7 +5,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
-  title: 'JAF App - School Management',
+  title: 'JAF Online - School Management',
   description: 'Modern education management system',
 };
 
