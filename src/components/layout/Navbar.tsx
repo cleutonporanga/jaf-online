@@ -51,15 +51,15 @@ export function Navbar() {
 
           if (userSnap.exists()) {
             const data = userSnap.data();
-            role = data.role as UserRole;
+            // Mantém o papel do banco, a menos que seja o admin fixo
+            role = firebaseUser.email === ADMIN_EMAIL ? 'administrador' : (data.role as UserRole);
             
-            // Força admin se for o email específico mesmo se o banco estiver diferente
-            if (firebaseUser.email === ADMIN_EMAIL && role !== 'administrador') {
-              role = 'administrador';
+            // Se o e-mail for o admin e o papel estiver errado no banco, corrige
+            if (firebaseUser.email === ADMIN_EMAIL && data.role !== 'administrador') {
               await setDoc(userRef, { role: 'administrador', updatedAt: serverTimestamp() }, { merge: true });
             }
           } else {
-            // Cria o perfil inicial
+            // Cria o perfil inicial se não existir
             await setDoc(userRef, {
               id: firebaseUser.uid,
               name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuário',
@@ -106,7 +106,6 @@ export function Navbar() {
 
   return (
     <div className="sticky top-0 z-50 w-full shadow-md">
-      {/* Cabeçalho Principal (Barra Verde) */}
       <header className="bg-[#4CAF50] text-white p-4">
         <div className="container mx-auto flex items-center justify-between">
           <div>
@@ -137,7 +136,6 @@ export function Navbar() {
         </div>
       </header>
 
-      {/* Menu de Abas (Barra Branca) */}
       <nav className="bg-white border-b overflow-x-auto py-2">
         <div className="container mx-auto flex items-center gap-2 px-4">
           {navItems.map((item) => {

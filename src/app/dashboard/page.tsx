@@ -29,10 +29,8 @@ export default function Dashboard() {
 
   const eventsQuery = useMemoFirebase(() => {
     if (!user) return null;
-    // Removed orderBy to avoid index requirement during initial prototype
     return query(
       collection(db, 'schoolEvents'), 
-      where('associatedCourseProfessorIds', 'array-contains', user.uid),
       limit(5)
     );
   }, [db, user]);
