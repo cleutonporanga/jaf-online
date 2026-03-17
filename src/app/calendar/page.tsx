@@ -8,9 +8,8 @@ import {
   ChevronLeft, 
   ChevronRight, 
   Plus,
-  Calendar as CalendarIcon,
-  MapPin,
-  Clock
+  Clock,
+  User
 } from 'lucide-react';
 import { 
   format, 
@@ -22,12 +21,10 @@ import {
   endOfWeek, 
   isSameMonth, 
   isSameDay, 
-  addDays, 
   eachDayOfInterval 
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { mockEvents } from '@/lib/data';
-import { Badge } from '@/components/ui/badge';
+import { mockEvents, mockWeeklySchedule } from '@/lib/data';
 import { cn } from '@/lib/utils';
 
 export default function CalendarPage() {
@@ -55,7 +52,7 @@ export default function CalendarPage() {
 
   return (
     <div className="min-h-full bg-[#F5F5F5]">
-      <main className="container mx-auto px-4 py-8 space-y-6">
+      <main className="container mx-auto px-4 py-8 space-y-8">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-[#2E7D32] font-headline">Calendário Escolar</h1>
@@ -162,7 +159,7 @@ export default function CalendarPage() {
           </CardContent>
         </Card>
 
-        {/* Legenda Opcional */}
+        {/* Legenda */}
         <div className="flex flex-wrap gap-6 p-4 bg-white rounded-xl shadow-sm border text-sm">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-orange-400" />
@@ -175,6 +172,39 @@ export default function CalendarPage() {
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-blue-400" />
             <span className="text-gray-600 font-medium">Prazos e Outros</span>
+          </div>
+        </div>
+
+        {/* Horário Escolar Semanal */}
+        <div className="space-y-6">
+          <div className="border-l-4 border-[#4CAF50] pl-4">
+            <h2 className="text-2xl font-bold text-[#2E7D32]">Horário Escolar Semanal</h2>
+            <p className="text-muted-foreground">Confira a programação completa de aulas e professores.</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            {mockWeeklySchedule.map((dayPlan) => (
+              <Card key={dayPlan.day} className="border-none shadow-md overflow-hidden bg-white">
+                <div className="bg-[#E8F5E9] p-3 border-b">
+                  <h3 className="text-sm font-bold text-[#2E7D32] text-center">{dayPlan.day}</h3>
+                </div>
+                <CardContent className="p-3 space-y-4">
+                  {dayPlan.classes.map((item, idx) => (
+                    <div key={idx} className="space-y-1 pb-3 border-b last:border-b-0 last:pb-0">
+                      <div className="flex items-center gap-1.5 text-[#4CAF50]">
+                        <Clock className="h-3 w-3" />
+                        <span className="text-[10px] font-bold uppercase tracking-wider">{item.time}</span>
+                      </div>
+                      <p className="text-sm font-bold text-gray-800 leading-tight">{item.subject}</p>
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <User className="h-3 w-3" />
+                        <span className="text-[10px] font-medium">{item.teacher}</span>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </main>

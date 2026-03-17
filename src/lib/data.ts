@@ -27,6 +27,17 @@ export interface Grade {
   maxScore: number;
 }
 
+export interface ScheduleItem {
+  time: string;
+  subject: string;
+  teacher: string;
+}
+
+export interface DaySchedule {
+  day: string;
+  classes: ScheduleItem[];
+}
+
 export const mockClasses: Class[] = [
   { id: 'c1', name: 'Matemática Avançada', grade: '9º Ano', teacherId: 'u1' },
   { id: 'c2', name: 'Física I', grade: '1º Ano EM', teacherId: 'u1' },
@@ -52,4 +63,52 @@ export const mockEvents = [
   { id: 'e1', title: 'Feriado Escolar', date: '2025-05-01', type: 'holiday' },
   { id: 'e2', title: 'Reunião de Pais', date: '2025-05-15', type: 'meeting' },
   { id: 'e3', title: 'Entrega de Notas', date: '2025-05-20', type: 'deadline' },
+];
+
+export const mockWeeklySchedule: DaySchedule[] = [
+  {
+    day: 'Segunda-feira',
+    classes: [
+      { time: '07:30 - 08:20', subject: 'Matemática', teacher: 'Ana Silva' },
+      { time: '08:20 - 09:10', subject: 'Física', teacher: 'Marcos Lima' },
+      { time: '09:30 - 10:20', subject: 'Português', teacher: 'Carlos Oliveira' },
+      { time: '10:20 - 11:10', subject: 'História', teacher: 'Beto Santos' },
+    ]
+  },
+  {
+    day: 'Terça-feira',
+    classes: [
+      { time: '07:30 - 08:20', subject: 'Geografia', teacher: 'Marta Rocha' },
+      { time: '08:20 - 09:10', subject: 'Química', teacher: 'Luciana Ferreira' },
+      { time: '09:30 - 10:20', subject: 'Biologia', teacher: 'Ricardo Souza' },
+      { time: '10:20 - 11:10', subject: 'Inglês', teacher: 'Patrícia Lima' },
+    ]
+  },
+  {
+    day: 'Quarta-feira',
+    classes: [
+      { time: '07:30 - 08:20', subject: 'Artes', teacher: 'Juliana Vaz' },
+      { time: '08:20 - 09:10', subject: 'Matemática', teacher: 'Ana Silva' },
+      { time: '09:30 - 10:20', subject: 'Filosofia', teacher: 'Sérgio Mendes' },
+      { time: '10:20 - 11:10', subject: 'Sociologia', teacher: 'Sérgio Mendes' },
+    ]
+  },
+  {
+    day: 'Quinta-feira',
+    classes: [
+      { time: '07:30 - 08:20', subject: 'Educação Física', teacher: 'Felipe Costa' },
+      { time: '08:20 - 09:10', subject: 'Português', teacher: 'Carlos Oliveira' },
+      { time: '09:30 - 10:20', subject: 'História', teacher: 'Beto Santos' },
+      { time: '10:20 - 11:10', subject: 'Geografia', teacher: 'Marta Rocha' },
+    ]
+  },
+  {
+    day: 'Sexta-feira',
+    classes: [
+      { time: '07:30 - 08:20', subject: 'Biologia', teacher: 'Ricardo Souza' },
+      { time: '08:20 - 09:10', subject: 'Física', teacher: 'Marcos Lima' },
+      { time: '09:30 - 10:20', subject: 'Química', teacher: 'Luciana Ferreira' },
+      { time: '10:20 - 11:10', subject: 'Matemática', teacher: 'Ana Silva' },
+    ]
+  }
 ];
