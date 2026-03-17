@@ -128,7 +128,7 @@ export default function StudentsPage() {
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-[#2E7D32] font-headline">Alunos</h1>
-            <p className="text-muted-foreground">Gerencie o registro geral de estudantes da Escola JAF.</p>
+            <p className="text-muted-foreground">Gerencie o registro geral de estudantes da JAF 2026.</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative">

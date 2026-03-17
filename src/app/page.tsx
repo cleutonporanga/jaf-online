@@ -63,7 +63,7 @@ export default function Home() {
             <GraduationCap className="h-12 w-12 text-white" />
           </div>
           <h1 className="text-3xl font-bold font-headline">ScholarView</h1>
-          <p className="opacity-90 text-sm">Escola JAF - Gestão Inteligente</p>
+          <p className="opacity-90 text-sm">JAF 2026 - Gestão Inteligente</p>
         </div>
         
         <CardContent className="p-8 space-y-6 bg-white">

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -296,7 +297,7 @@ export default function ClassesPage() {
                       </Button>
                     </div>
                     <CardTitle className="text-xl mt-2 group-hover:text-[#2E7D32] transition-colors">{c.name}</CardTitle>
-                    <UICardDescription>Escola JAF - {c.year}</UICardDescription>
+                    <UICardDescription>JAF 2026 - {c.year}</UICardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     <div className="space-y-2">
