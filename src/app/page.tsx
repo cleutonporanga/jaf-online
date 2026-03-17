@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -27,10 +26,13 @@ export default function Home() {
 
   useEffect(() => {
     setMounted(true);
-    if (isAuthenticated) {
+  }, []);
+
+  useEffect(() => {
+    if (mounted && isAuthenticated) {
       router.push('/dashboard');
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, router, mounted]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
