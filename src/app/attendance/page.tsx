@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -33,7 +33,7 @@ const months = [
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
 ];
 
-export default function AttendancePage() {
+function AttendanceContent() {
   const db = useFirestore();
   const searchParams = useSearchParams();
   const classIdFromUrl = searchParams.get('classId');
@@ -45,12 +45,10 @@ export default function AttendancePage() {
   const [selectedMonth, setSelectedMonth] = useState(months[new Date().getMonth()]);
   const [absences, setAbsences] = useState<Record<string, string>>({});
 
-  // Regra: Apenas administrador pode editar
   const isReadOnly = appUser?.role !== 'administrador';
 
-  // Busca todas as turmas
   const classesQuery = useMemoFirebase(() => {
-    return query(collection(db, 'courses'));
+    return query(collection(db!, 'courses'));
   }, [db]);
   
   const { data: classes, isLoading: loadingClasses } = useCollection(classesQuery);
@@ -63,17 +61,15 @@ export default function AttendancePage() {
     }
   }, [classes, classIdFromUrl, selectedClassId]);
 
-  // Busca alunos da turma selecionada
   const studentsQuery = useMemoFirebase(() => {
-    if (!selectedClassId) return null;
+    if (!selectedClassId || !db) return null;
     return query(collection(db, 'students'), where('courseIds', 'array-contains', selectedClassId));
   }, [db, selectedClassId]);
 
   const { data: students, isLoading: loadingStudents } = useCollection(studentsQuery);
 
-  // Busca registros de falta existentes para a turma e o mês selecionado
   const attendanceQuery = useMemoFirebase(() => {
-    if (!selectedClassId || !selectedMonth) return null;
+    if (!selectedClassId || !selectedMonth || !db) return null;
     return query(
       collection(db, 'attendanceRecords'), 
       where('courseId', '==', selectedClassId)
@@ -82,7 +78,6 @@ export default function AttendancePage() {
 
   const { data: existingAttendance } = useCollection(attendanceQuery);
 
-  // Sincroniza o estado local com os dados do Firestore ao mudar turma ou mês
   useEffect(() => {
     if (existingAttendance && students) {
       const newState: Record<string, string> = {};
@@ -108,7 +103,7 @@ export default function AttendancePage() {
   };
 
   const handleSave = () => {
-    if (isReadOnly || !firebaseUser || !selectedClassId) return;
+    if (isReadOnly || !firebaseUser || !selectedClassId || !db) return;
 
     const currentYear = new Date().getFullYear();
 
@@ -184,13 +179,6 @@ export default function AttendancePage() {
           </div>
         </header>
 
-        {isReadOnly && (
-          <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-3 text-amber-800">
-            <AlertTriangle className="h-5 w-5" />
-            <p className="text-sm font-medium">Apenas administradores podem registrar ou alterar faltas.</p>
-          </div>
-        )}
-
         <Card className="border-none shadow-lg overflow-hidden">
           <CardHeader className="bg-white border-b flex flex-row items-center justify-between">
             <CardTitle className="text-lg flex items-center gap-2">
@@ -256,5 +244,13 @@ export default function AttendancePage() {
         </Card>
       </main>
     </div>
+  );
+}
+
+export default function AttendancePage() {
+  return (
+    <Suspense fallback={<div className="flex h-[80vh] items-center justify-center"><Loader2 className="animate-spin text-[#4CAF50]" /></div>}>
+      <AttendanceContent />
+    </Suspense>
   );
 }

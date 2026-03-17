@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -28,7 +28,7 @@ import { Calculator, Save, Download, Plus, Loader2, AlertTriangle } from 'lucide
 import { useToast } from '@/hooks/use-toast';
 import { useSearchParams } from 'next/navigation';
 
-export default function GradesPage() {
+function GradesContent() {
   const db = useFirestore();
   const searchParams = useSearchParams();
   const classIdFromUrl = searchParams.get('classId');
@@ -39,11 +39,10 @@ export default function GradesPage() {
   const [gradesState, setGradesState] = useState<Record<string, { v1: string, v2: string, work: string }>>({});
   const [isExporting, setIsExporting] = useState(false);
 
-  // Regra: Apenas administrador pode editar notas
   const isReadOnly = appUser?.role !== 'administrador';
 
   const classesQuery = useMemoFirebase(() => {
-    return query(collection(db, 'courses'));
+    return query(collection(db!, 'courses'));
   }, [db]);
 
   const { data: classes, isLoading: loadingClasses } = useCollection(classesQuery);
@@ -57,14 +56,14 @@ export default function GradesPage() {
   }, [classes, classIdFromUrl, selectedClassId]);
 
   const studentsQuery = useMemoFirebase(() => {
-    if (!selectedClassId) return null;
+    if (!selectedClassId || !db) return null;
     return query(collection(db, 'students'), where('courseIds', 'array-contains', selectedClassId));
   }, [db, selectedClassId]);
 
   const { data: students, isLoading: loadingStudents } = useCollection(studentsQuery);
 
   const gradesQuery = useMemoFirebase(() => {
-    if (!selectedClassId) return null;
+    if (!selectedClassId || !db) return null;
     return query(collection(db, 'gradeRecords'), where('courseId', '==', selectedClassId));
   }, [db, selectedClassId]);
 
@@ -104,7 +103,7 @@ export default function GradesPage() {
   };
 
   const handleSave = () => {
-    if (isReadOnly || !firebaseUser || !selectedClassId) return;
+    if (isReadOnly || !firebaseUser || !selectedClassId || !db) return;
 
     students?.forEach(student => {
       const g = gradesState[student.id];
@@ -150,7 +149,6 @@ export default function GradesPage() {
       description: `Preparando boletins com cabeçalho oficial da Escola Joaquim Antônio Filho para a turma ${className}...`,
     });
 
-    // Simulação de geração de PDF com cabeçalho
     setTimeout(() => {
       setIsExporting(false);
       toast({
@@ -282,5 +280,13 @@ export default function GradesPage() {
         </Card>
       </main>
     </div>
+  );
+}
+
+export default function GradesPage() {
+  return (
+    <Suspense fallback={<div className="flex h-[80vh] items-center justify-center"><Loader2 className="animate-spin text-[#4CAF50]" /></div>}>
+      <GradesContent />
+    </Suspense>
   );
 }
