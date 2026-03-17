@@ -18,7 +18,7 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 export function Navbar() {
-  const { logout, isAuthenticated } = useAuth();
+  const { logout, isAuthenticated, user } = useAuth();
   const pathname = usePathname();
 
   const navItems = [
@@ -31,40 +31,61 @@ export function Navbar() {
     { name: 'Perfil', href: '/profile', icon: UserIcon },
   ];
 
-  // We only show the full navigation if the user is logged in
   if (!isAuthenticated && pathname === '/') return null;
 
   return (
-    <nav className="bg-white shadow p-4 sticky top-0 z-50 flex items-center justify-between transition-all">
-      <div className="container mx-auto flex items-center justify-between">
-        <div className="flex flex-wrap gap-4 md:gap-8 items-center">
-          {navItems.map((item) => (
-            <Link 
-              key={item.href} 
-              href={item.href}
-              className={cn(
-                "flex items-center gap-2 text-sm font-medium transition-colors hover:text-primary",
-                pathname === item.href ? "text-primary font-bold underline underline-offset-8 decoration-2" : "text-muted-foreground"
-              )}
-            >
-              <item.icon className="h-4 w-4" />
-              <span>{item.name}</span>
-            </Link>
-          ))}
+    <div className="sticky top-0 z-50 w-full shadow-md">
+      {/* Cabeçalho Principal (Barra Verde) */}
+      <header className="bg-[#4CAF50] text-white p-4">
+        <div className="container mx-auto flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight font-headline">Escola JAF</h1>
+            <p className="text-xs opacity-90 font-medium">Sistema de Gestão Escolar | 2024</p>
+          </div>
+          
+          {isAuthenticated && (
+            <div className="flex items-center gap-4">
+              <div className="text-right hidden sm:block">
+                <p className="text-sm font-bold">{user?.name}</p>
+                <p className="text-[10px] uppercase tracking-wider opacity-80">{user?.role}</p>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={logout} 
+                className="bg-white/10 hover:bg-white/20 text-white border border-white/20 gap-2 px-4"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Sair</span>
+              </Button>
+            </div>
+          )}
         </div>
+      </header>
 
-        {isAuthenticated && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={logout} 
-            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 gap-2"
-          >
-            <LogOut className="h-4 w-4" />
-            <span className="hidden sm:inline">Sair</span>
-          </Button>
-        )}
-      </div>
-    </nav>
+      {/* Menu de Abas (Barra Branca) */}
+      <nav className="bg-white border-b overflow-x-auto">
+        <div className="container mx-auto flex items-center gap-2 px-4">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link 
+                key={item.href} 
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all whitespace-nowrap border-b-2",
+                  isActive 
+                    ? "text-[#2E7D32] border-[#4CAF50] bg-emerald-50/50" 
+                    : "text-muted-foreground border-transparent hover:text-[#4CAF50] hover:bg-gray-50"
+                )}
+              >
+                <item.icon className={cn("h-4 w-4", isActive ? "text-[#4CAF50]" : "text-gray-400")} />
+                <span>{item.name}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+    </div>
   );
 }
