@@ -119,7 +119,7 @@ export function Navbar() {
       <header className="bg-[#4CAF50] text-white p-4">
         <div className="container mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight font-headline">JAF 2026</h1>
+            <h1 className="text-3xl font-bold tracking-tight font-headline">JAF Online</h1>
             <p className="text-xs opacity-90 font-medium">Escola Joaquim Antônio Filho | Buritizal</p>
           </div>
           
