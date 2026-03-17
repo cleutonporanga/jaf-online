@@ -19,29 +19,39 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import { mockClasses, mockStudents } from '@/lib/data';
-import { Calendar as CalendarIcon, Save, Users } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { Users, Save, CalendarDays, FileSpreadsheet } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+
+const months = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+];
 
 export default function AttendancePage() {
   const [selectedClass, setSelectedClass] = useState(mockClasses[0].id);
+  const [selectedMonth, setSelectedMonth] = useState(months[new Date().getMonth()]);
   const students = mockStudents.filter(s => s.classId === selectedClass);
-  const [attendance, setAttendance] = useState<Record<string, boolean>>(
-    students.reduce((acc, s) => ({ ...acc, [s.id]: true }), {})
+  
+  // Estado para armazenar as faltas (ID do aluno -> quantidade)
+  const [absences, setAbsences] = useState<Record<string, string>>(
+    students.reduce((acc, s) => ({ ...acc, [s.id]: '0' }), {})
   );
+  
   const { toast } = useToast();
 
-  const handleToggle = (studentId: string) => {
-    setAttendance(prev => ({ ...prev, [studentId]: !prev[studentId] }));
+  const handleAbsenceChange = (studentId: string, value: string) => {
+    // Apenas números
+    if (value === '' || /^\d+$/.test(value)) {
+      setAbsences(prev => ({ ...prev, [studentId]: value }));
+    }
   };
 
   const handleSave = () => {
     toast({
-      title: "Frequência Salva!",
-      description: `Registro do dia ${format(new Date(), 'dd/MM/yyyy')} concluído.`,
+      title: "Registro de Faltas Salvo",
+      description: `As faltas do mês de ${selectedMonth} para a turma ${mockClasses.find(c => c.id === selectedClass)?.name} foram atualizadas.`,
       className: "bg-[#E8F5E9] border-[#4CAF50] text-[#2E7D32]",
     });
   };
@@ -51,14 +61,21 @@ export default function AttendancePage() {
       <main className="container mx-auto px-4 py-8 space-y-8">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-[#2E7D32] font-headline">Registro de Frequência</h1>
-            <p className="text-muted-foreground">Lance a chamada diária para suas turmas.</p>
+            <h1 className="text-3xl font-bold text-[#2E7D32] font-headline">Frequência Mensal</h1>
+            <p className="text-muted-foreground">Registre o total de faltas dos alunos no mês selecionado.</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border shadow-sm">
-              <CalendarIcon className="h-4 w-4 text-[#4CAF50]" />
-              <span className="text-sm font-medium">{format(new Date(), "dd 'de' MMMM, yyyy", { locale: ptBR })}</span>
-            </div>
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="w-40 bg-white">
+                <CalendarDays className="h-4 w-4 mr-2 text-[#4CAF50]" />
+                <SelectValue placeholder="Mês" />
+              </SelectTrigger>
+              <SelectContent>
+                {months.map(m => (
+                  <SelectItem key={m} value={m}>{m}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Select value={selectedClass} onValueChange={setSelectedClass}>
               <SelectTrigger className="w-64 bg-white">
                 <SelectValue placeholder="Selecione a turma" />
@@ -71,17 +88,21 @@ export default function AttendancePage() {
             </Select>
             <Button onClick={handleSave} className="bg-[#4CAF50] hover:bg-[#43a047] gap-2 shadow-sm">
               <Save className="h-4 w-4" />
-              Salvar Chamada
+              Salvar Registro
             </Button>
           </div>
         </header>
 
         <Card className="border-none shadow-lg overflow-hidden">
-          <CardHeader className="bg-white border-b">
+          <CardHeader className="bg-white border-b flex flex-row items-center justify-between">
             <CardTitle className="text-lg flex items-center gap-2">
               <Users className="h-5 w-5 text-[#4CAF50]" />
-              Lista de Chamada - {mockClasses.find(c => c.id === selectedClass)?.name}
+              {mockClasses.find(c => c.id === selectedClass)?.name} - Faltas em {selectedMonth}
             </CardTitle>
+            <Button variant="outline" size="sm" className="gap-2">
+              <FileSpreadsheet className="h-4 w-4" />
+              Exportar Relatório
+            </Button>
           </CardHeader>
           <CardContent className="p-0">
             <Table>
@@ -89,31 +110,38 @@ export default function AttendancePage() {
                 <TableRow>
                   <TableHead className="w-20 text-center">Nº</TableHead>
                   <TableHead>Nome do Aluno</TableHead>
-                  <TableHead className="w-32 text-center">Presente</TableHead>
-                  <TableHead className="w-32 text-center">Status</TableHead>
+                  <TableHead className="w-48 text-center">Quantidade de Faltas</TableHead>
+                  <TableHead className="w-32 text-center">Situação</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {students.map((student, index) => (
-                  <TableRow key={student.id} className="hover:bg-gray-50 transition-colors">
-                    <TableCell className="text-center font-mono text-muted-foreground">{index + 1}</TableCell>
-                    <TableCell className="font-medium">{student.name}</TableCell>
-                    <TableCell className="text-center">
-                      <Checkbox 
-                        checked={attendance[student.id]} 
-                        onCheckedChange={() => handleToggle(student.id)}
-                        className="h-6 w-6 rounded-md border-gray-300 data-[state=checked]:bg-[#4CAF50] data-[state=checked]:border-[#4CAF50]"
-                      />
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {attendance[student.id] ? (
-                        <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">PRESENTE</span>
-                      ) : (
-                        <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-full">AUSENTE</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {students.map((student, index) => {
+                  const numAbsences = parseInt(absences[student.id] || '0');
+                  const situation = numAbsences > 10 ? 'Atenção' : 'Regular';
+                  
+                  return (
+                    <TableRow key={student.id} className="hover:bg-gray-50 transition-colors">
+                      <TableCell className="text-center font-mono text-muted-foreground">{index + 1}</TableCell>
+                      <TableCell className="font-medium">{student.name}</TableCell>
+                      <TableCell className="text-center">
+                        <Input 
+                          type="text"
+                          inputMode="numeric"
+                          value={absences[student.id] || '0'}
+                          onChange={(e) => handleAbsenceChange(student.id, e.target.value)}
+                          className="w-24 mx-auto text-center font-bold"
+                        />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {situation === 'Regular' ? (
+                          <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">REGULAR</span>
+                        ) : (
+                          <span className="text-xs font-bold text-red-600 bg-red-50 px-3 py-1 rounded-full">ALERTA</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
             {students.length === 0 && (
