@@ -55,25 +55,28 @@ export default function Dashboard() {
   const isAdmin = appUser?.role === 'administrador';
 
   const coursesQuery = useMemoFirebase(() => {
-    if (!firebaseUser || !appUser) return null;
+    if (!db || !firebaseUser || !appUser) return null;
     if (isAdmin) return query(collection(db, 'courses'));
     return query(collection(db, 'courses'), where('professorId', '==', firebaseUser.uid));
   }, [db, firebaseUser, appUser, isAdmin]);
 
   const studentsQuery = useMemoFirebase(() => {
-    if (!firebaseUser || !appUser) return null;
+    if (!db || !firebaseUser || !appUser) return null;
     return query(collection(db, 'students'));
   }, [db, firebaseUser, appUser]);
 
   const eventsQuery = useMemoFirebase(() => {
+    if (!db) return null;
     return query(collection(db, 'schoolEvents'), orderBy('startDate', 'asc'), limit(5));
   }, [db]);
 
   const noticeDocRef = useMemoFirebase(() => {
+    if (!db) return null;
     return doc(db, 'schoolSettings', 'generalNotice');
   }, [db]);
 
   const actionsQuery = useMemoFirebase(() => {
+    if (!db) return null;
     return query(collection(db, 'recommendedActions'), orderBy('createdAt', 'desc'));
   }, [db]);
 
@@ -86,7 +89,7 @@ export default function Dashboard() {
   const isLoading = authLoading || loadingCourses || loadingStudents || loadingEvents || loadingNotice || loadingActions;
 
   const handleUpdateNotice = () => {
-    if (!isAdmin || !newNoticeText.trim()) return;
+    if (!isAdmin || !newNoticeText.trim() || !noticeDocRef) return;
 
     setDocumentNonBlocking(noticeDocRef, {
       text: newNoticeText,
@@ -103,7 +106,7 @@ export default function Dashboard() {
   };
 
   const handleAddAction = () => {
-    if (!isAdmin || !newAction.text.trim()) return;
+    if (!db || !isAdmin || !newAction.text.trim()) return;
 
     const actionsRef = collection(db, 'recommendedActions');
     addDocumentNonBlocking(actionsRef, {
@@ -121,7 +124,7 @@ export default function Dashboard() {
   };
 
   const handleDeleteAction = (id: string) => {
-    if (!isAdmin) return;
+    if (!db || !isAdmin) return;
     const actionRef = doc(db, 'recommendedActions', id);
     deleteDocumentNonBlocking(actionRef);
     toast({

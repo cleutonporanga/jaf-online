@@ -69,6 +69,7 @@ export default function CalendarPage() {
   const isAdmin = appUser?.role === 'administrador';
 
   const eventsQuery = useMemoFirebase(() => {
+    if (!db) return null;
     return query(collection(db, 'schoolEvents'));
   }, [db]);
 
@@ -104,7 +105,7 @@ export default function CalendarPage() {
 
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newEvent.title) return;
+    if (!db || !newEvent.title) return;
 
     setLoading(true);
     try {
@@ -131,16 +132,6 @@ export default function CalendarPage() {
       console.error(error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'Feriado': return "bg-red-500";
-      case 'Reunião': return "bg-emerald-500";
-      case 'Evento': return "bg-blue-500";
-      case 'Aniversário': return "bg-orange-500";
-      default: return "bg-gray-500";
     }
   };
 
@@ -345,7 +336,6 @@ export default function CalendarPage() {
           </div>
         </div>
 
-        {/* Diálogo de Detalhes do Evento */}
         <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
@@ -360,7 +350,7 @@ export default function CalendarPage() {
             <ScrollArea className="max-h-[60vh] pr-4">
               <div className="space-y-4 py-4">
                 {selectedDayEvents.map((event) => (
-                  <Card key={event.id} className="border-l-4 shadow-sm" style={{ borderLeftColor: `var(--${event.type === 'Feriado' ? 'red' : event.type === 'Reunião' ? 'emerald' : event.type === 'Evento' ? 'blue' : 'orange'}-500)` }}>
+                  <Card key={event.id} className="border-l-4 shadow-sm" style={{ borderLeftColor: event.type === 'Feriado' ? '#ef4444' : event.type === 'Reunião' ? '#10b981' : event.type === 'Evento' ? '#3b82f6' : '#f97316' }}>
                     <CardContent className="p-4 space-y-3">
                       <div className="flex justify-between items-start">
                         <h3 className="font-bold text-gray-900 leading-tight">{event.title}</h3>
