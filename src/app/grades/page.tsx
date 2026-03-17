@@ -26,9 +26,12 @@ import { collection, query, where, doc, serverTimestamp } from 'firebase/firesto
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Calculator, Save, Download, Plus, Loader2, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useSearchParams } from 'next/navigation';
 
 export default function GradesPage() {
   const db = useFirestore();
+  const searchParams = useSearchParams();
+  const classIdFromUrl = searchParams.get('classId');
   const { user: firebaseUser, isUserLoading: authLoading } = useUser();
   const { user: appUser } = useAuth();
   const { toast } = useToast();
@@ -45,10 +48,12 @@ export default function GradesPage() {
   const { data: classes, isLoading: loadingClasses } = useCollection(classesQuery);
 
   useEffect(() => {
-    if (classes && classes.length > 0 && !selectedClassId) {
+    if (classIdFromUrl) {
+      setSelectedClassId(classIdFromUrl);
+    } else if (classes && classes.length > 0 && !selectedClassId) {
       setSelectedClassId(classes[0].id);
     }
-  }, [classes, selectedClassId]);
+  }, [classes, classIdFromUrl, selectedClassId]);
 
   const studentsQuery = useMemoFirebase(() => {
     if (!selectedClassId) return null;

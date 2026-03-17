@@ -23,7 +23,7 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
-  DialogTrigger,
+  DialogTrigger, 
   DialogFooter,
   DialogDescription
 } from '@/components/ui/dialog';
@@ -42,11 +42,13 @@ import { collection, query, serverTimestamp, doc, arrayUnion } from 'firebase/fi
 import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useRouter } from 'next/navigation';
 
 export default function ClassesPage() {
   const { user } = useAuth();
   const db = useFirestore();
   const { toast } = useToast();
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEnrollDialogOpen, setIsEnrollDialogOpen] = useState(false);
@@ -69,7 +71,7 @@ export default function ClassesPage() {
     return query(collection(db, 'courses'));
   }, [db]);
 
-  const { data: courses, isLoading } = useCollection(coursesQuery);
+  const { data: courses, isLoading: loadingCourses } = useCollection(coursesQuery);
 
   const professorsQuery = useMemoFirebase(() => {
     return query(collection(db, 'userProfiles'));
@@ -168,6 +170,10 @@ export default function ClassesPage() {
   const openEnrollDialog = (courseId: string) => {
     setSelectedCourseId(courseId);
     setIsEnrollDialogOpen(true);
+  };
+
+  const navigateToDiary = (courseId: string) => {
+    router.push(`/attendance?classId=${courseId}`);
   };
 
   return (
@@ -274,7 +280,7 @@ export default function ClassesPage() {
           </div>
         </header>
 
-        {isLoading ? (
+        {loadingCourses ? (
           <div className="flex h-64 items-center justify-center">
             <Loader2 className="h-8 w-8 text-[#4CAF50] animate-spin" />
           </div>
@@ -328,7 +334,10 @@ export default function ClassesPage() {
                       )}
                     </div>
 
-                    <Button className="w-full bg-[#4CAF50] hover:bg-[#43a047] h-10 shadow-sm">
+                    <Button 
+                      onClick={() => navigateToDiary(c.id)}
+                      className="w-full bg-[#4CAF50] hover:bg-[#43a047] h-10 shadow-sm"
+                    >
                       Acessar Diário de Classe
                     </Button>
                   </CardContent>

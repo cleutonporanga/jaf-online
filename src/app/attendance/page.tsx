@@ -26,6 +26,7 @@ import { collection, query, where, doc, serverTimestamp } from 'firebase/firesto
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Users, Save, CalendarDays, FileSpreadsheet, Loader2, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useSearchParams } from 'next/navigation';
 
 const months = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -34,9 +35,12 @@ const months = [
 
 export default function AttendancePage() {
   const db = useFirestore();
+  const searchParams = useSearchParams();
+  const classIdFromUrl = searchParams.get('classId');
   const { user: firebaseUser, isUserLoading: authLoading } = useUser();
   const { user: appUser } = useAuth();
   const { toast } = useToast();
+  
   const [selectedClassId, setSelectedClassId] = useState<string>("");
   const [selectedMonth, setSelectedMonth] = useState(months[new Date().getMonth()]);
   const [absences, setAbsences] = useState<Record<string, string>>({});
@@ -52,10 +56,12 @@ export default function AttendancePage() {
   const { data: classes, isLoading: loadingClasses } = useCollection(classesQuery);
 
   useEffect(() => {
-    if (classes && classes.length > 0 && !selectedClassId) {
+    if (classIdFromUrl) {
+      setSelectedClassId(classIdFromUrl);
+    } else if (classes && classes.length > 0 && !selectedClassId) {
       setSelectedClassId(classes[0].id);
     }
-  }, [classes, selectedClassId]);
+  }, [classes, classIdFromUrl, selectedClassId]);
 
   // Busca alunos da turma selecionada
   const studentsQuery = useMemoFirebase(() => {
@@ -68,7 +74,6 @@ export default function AttendancePage() {
   // Busca registros de falta existentes para a turma e o mês selecionado
   const attendanceQuery = useMemoFirebase(() => {
     if (!selectedClassId || !selectedMonth) return null;
-    // Buscamos pela turma e identificamos o mês pela nota ou data
     return query(
       collection(db, 'attendanceRecords'), 
       where('courseId', '==', selectedClassId)
@@ -84,10 +89,7 @@ export default function AttendancePage() {
       const currentYear = new Date().getFullYear();
       
       existingAttendance.forEach(record => {
-        // O ID que geramos é: ${studentId}-${selectedMonth}-${year}
         if (record.id.includes(`-${selectedMonth}-${currentYear}`)) {
-          // Extraímos a quantidade de faltas das notas ou poderíamos ter um campo dedicado
-          // Como no save anterior salvamos na 'notes', vamos tentar extrair ou usar um valor padrão
           const match = record.notes?.match(/:\s(\d+)/);
           if (match) {
             newState[record.studentId] = match[1];
