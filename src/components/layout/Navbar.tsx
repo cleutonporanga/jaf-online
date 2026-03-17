@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useAuth as useAuthStore, type UserRole } from '@/lib/auth-store';
 import { 
@@ -36,33 +37,33 @@ export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const [syncing, setSyncing] = useState(false);
+  const syncInProgress = useRef(false);
 
   useEffect(() => {
     const syncUser = async () => {
-      if (!isUserLoading && firebaseUser && db) {
+      if (!isUserLoading && firebaseUser && db && !syncInProgress.current) {
+        syncInProgress.current = true;
         setSyncing(true);
         try {
           const userRef = doc(db, 'userProfiles', firebaseUser.uid);
           const userSnap = await getDoc(userRef);
           
           let role: UserRole = 'professor';
-          
-          if (firebaseUser.email === ADMIN_EMAIL) {
-            role = 'administrador';
-          } else if (firebaseUser.email === STUDENT_EMAIL) {
-            role = 'aluno';
-          } else if (firebaseUser.email === TEACHER_EMAIL) {
-            role = 'professor';
-          }
+          if (firebaseUser.email === ADMIN_EMAIL) role = 'administrador';
+          else if (firebaseUser.email === STUDENT_EMAIL) role = 'aluno';
+          else if (firebaseUser.email === TEACHER_EMAIL) role = 'professor';
 
           if (userSnap.exists()) {
             const data = userSnap.data();
+            const currentRoleInDb = data.role as UserRole;
+            
+            // Override role based on email priority
             const targetRole = (firebaseUser.email === ADMIN_EMAIL) ? 'administrador' : 
                                (firebaseUser.email === STUDENT_EMAIL) ? 'aluno' : 
                                (firebaseUser.email === TEACHER_EMAIL) ? 'professor' : 
-                               (data.role as UserRole);
+                               currentRoleInDb;
             
-            if (data.role !== targetRole) {
+            if (currentRoleInDb !== targetRole) {
               await setDoc(userRef, { role: targetRole, updatedAt: serverTimestamp() }, { merge: true });
             }
             role = targetRole;
@@ -83,6 +84,7 @@ export function Navbar() {
           setAuth(firebaseUser, 'professor');
         } finally {
           setSyncing(false);
+          syncInProgress.current = false;
         }
       } else if (!isUserLoading && !firebaseUser) {
         logout();
@@ -119,10 +121,10 @@ export function Navbar() {
     <div className="sticky top-0 z-50 w-full shadow-md">
       <header className="bg-[#4CAF50] text-white p-4">
         <div className="container mx-auto flex items-center justify-between">
-          <div>
+          <Link href="/dashboard" className="hover:opacity-90 transition-opacity">
             <h1 className="text-3xl font-bold tracking-tight font-headline">JAF Online</h1>
             <p className="text-xs opacity-90 font-medium">Escola Joaquim Antônio Filho | Buritizal</p>
-          </div>
+          </Link>
           
           {isAuthenticated && (
             <div className="flex items-center gap-4">

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
@@ -78,7 +79,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   }, [auth]);
 
   const contextValue = useMemo((): FirebaseContextState => {
-    // Permitir serviços nulos durante a fase de build/SSR
     return {
       areServicesAvailable: !!(firebaseApp && firestore && auth),
       firebaseApp: firebaseApp || null,
@@ -102,7 +102,6 @@ export const useFirebase = (): FirebaseServicesAndUser => {
   const context = useContext(FirebaseContext);
 
   if (context === undefined) {
-    // Retornar um estado nulo seguro em vez de lançar erro fatal
     return {
       firebaseApp: null,
       firestore: null,

@@ -22,13 +22,27 @@ export function initializeFirebase() {
 
   let firebaseApp: FirebaseApp;
 
+  // Check if Firebase is already initialized or if config is available
+  const hasConfig = !!firebaseConfig.apiKey;
+
   if (!getApps().length) {
     try {
-      // Explicitly pass config to avoid initialization errors on Vercel
+      if (!hasConfig) {
+        console.warn('Firebase: configuration is missing. Services will be unavailable.');
+        return {
+          firebaseApp: null as any,
+          auth: null as any,
+          firestore: null as any
+        };
+      }
       firebaseApp = initializeApp(firebaseConfig);
     } catch (e) {
       console.error('Firebase initialization failed:', e);
-      throw e;
+      return {
+        firebaseApp: null as any,
+        auth: null as any,
+        firestore: null as any
+      };
     }
   } else {
     firebaseApp = getApp();
@@ -38,6 +52,8 @@ export function initializeFirebase() {
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {
+  if (!firebaseApp) return { firebaseApp: null as any, auth: null as any, firestore: null as any };
+  
   return {
     firebaseApp,
     auth: getAuth(firebaseApp),
