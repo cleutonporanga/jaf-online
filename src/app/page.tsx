@@ -118,7 +118,7 @@ export default function Home() {
           
           <div className="text-center">
             <p className="text-xs text-gray-400">
-              Acesso restrito a professores e administradores autorizados.
+              Sistema de Superintendência Escolar
             </p>
           </div>
         </CardContent>
