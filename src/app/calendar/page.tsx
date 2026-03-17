@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -52,7 +52,11 @@ export default function CalendarPage() {
   const db = useFirestore();
   const { user: appUser } = useAuth();
   const { toast } = useToast();
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  
+  // Hydration fix: Initialize state with null or fixed value and set in useEffect
+  const [currentMonth, setCurrentMonth] = useState<Date | null>(null);
+  const [mounted, setMounted] = useState(false);
+  
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [selectedDayEvents, setSelectedDayEvents] = useState<any[]>([]);
@@ -62,9 +66,16 @@ export default function CalendarPage() {
   const [newEvent, setNewEvent] = useState({
     title: '',
     type: 'Evento',
-    date: format(new Date(), 'yyyy-MM-dd'),
+    date: '',
     description: ''
   });
+
+  useEffect(() => {
+    setMounted(true);
+    const now = new Date();
+    setCurrentMonth(now);
+    setNewEvent(prev => ({ ...prev, date: format(now, 'yyyy-MM-dd') }));
+  }, []);
 
   const isAdmin = appUser?.role === 'administrador';
 
@@ -74,6 +85,14 @@ export default function CalendarPage() {
   }, [db]);
 
   const { data: events, isLoading } = useCollection(eventsQuery);
+
+  if (!mounted || !currentMonth) {
+    return (
+      <div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center">
+        <Loader2 className="h-8 w-8 text-[#4CAF50] animate-spin" />
+      </div>
+    );
+  }
 
   const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
   const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
@@ -105,12 +124,12 @@ export default function CalendarPage() {
 
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!db || !newEvent.title) return;
+    if (!db || !newEvent.title || !newEvent.date) return;
 
     setLoading(true);
     try {
       const colRef = collection(db, 'schoolEvents');
-      await addDocumentNonBlocking(colRef, {
+      addDocumentNonBlocking(colRef, {
         title: newEvent.title,
         type: newEvent.type,
         description: newEvent.description,
@@ -183,6 +202,7 @@ export default function CalendarPage() {
                         type="date"
                         value={newEvent.date}
                         onChange={e => setNewEvent({...newEvent, date: e.target.value})}
+                        required
                       />
                     </div>
                     <div className="space-y-2">
@@ -268,7 +288,7 @@ export default function CalendarPage() {
               )}
               {calendarDays.map((day, idx) => {
                 const dayEvents = getEventsForDay(day);
-                const isCurrentMonth = isSameMonth(day, monthStart);
+                const isCurrMonth = isSameMonth(day, monthStart);
                 const isToday = isSameDay(day, new Date());
                 const hasEvents = dayEvents.length > 0;
 
@@ -278,16 +298,16 @@ export default function CalendarPage() {
                     onClick={() => handleDayClick(day, dayEvents)}
                     className={cn(
                       "min-h-[120px] p-2 border-r border-b last:border-r-0 transition-all relative group",
-                      !isCurrentMonth && "bg-gray-50/50 text-gray-400",
+                      !isCurrMonth && "bg-gray-50/50 text-gray-400",
                       hasEvents && "cursor-pointer hover:bg-emerald-50/30",
-                      !hasEvents && isCurrentMonth && "hover:bg-gray-50/30"
+                      !hasEvents && isCurrMonth && "hover:bg-gray-50/30"
                     )}
                   >
                     <div className="flex justify-between items-start mb-1">
                       <span className={cn(
                         "flex items-center justify-center w-7 h-7 text-xs font-bold rounded-full",
                         isToday ? "bg-[#4CAF50] text-white" : "text-gray-700",
-                        !isCurrentMonth && "text-gray-300"
+                        !isCurrMonth && "text-gray-300"
                       )}>
                         {format(day, 'd')}
                       </span>

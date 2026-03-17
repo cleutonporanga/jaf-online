@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, Suspense } from 'react';
@@ -42,8 +41,14 @@ function AttendanceContent() {
   const { toast } = useToast();
   
   const [selectedClassId, setSelectedClassId] = useState<string>("");
-  const [selectedMonth, setSelectedMonth] = useState(months[new Date().getMonth()]);
+  const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [absences, setAbsences] = useState<Record<string, string>>({});
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    setSelectedMonth(months[new Date().getMonth()]);
+  }, []);
 
   const isReadOnly = appUser?.role !== 'administrador';
 
@@ -80,7 +85,7 @@ function AttendanceContent() {
   const { data: existingAttendance } = useCollection(attendanceQuery);
 
   useEffect(() => {
-    if (existingAttendance && students) {
+    if (existingAttendance && students && selectedMonth) {
       const newState: Record<string, string> = {};
       const currentYear = new Date().getFullYear();
       
@@ -133,7 +138,7 @@ function AttendanceContent() {
     });
   };
 
-  if (authLoading || (loadingClasses && !classes)) {
+  if (!mounted || authLoading || (loadingClasses && !classes)) {
     return <div className="flex h-[80vh] items-center justify-center"><Loader2 className="animate-spin text-[#4CAF50]" /></div>;
   }
 
