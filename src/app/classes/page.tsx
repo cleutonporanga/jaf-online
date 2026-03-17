@@ -2,7 +2,6 @@
 "use client";
 
 import { useState } from 'react';
-import { Navbar } from '@/components/layout/Navbar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -25,8 +24,7 @@ export default function ClassesPage() {
   );
 
   return (
-    <div className="min-h-screen bg-[#F5F5F5]">
-      <Navbar />
+    <div className="min-h-full bg-[#F5F5F5]">
       <main className="container mx-auto px-4 py-8 space-y-8">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>

@@ -1,7 +1,6 @@
 
 "use client";
 
-import { Navbar } from '@/components/layout/Navbar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   Users, 
@@ -18,8 +17,7 @@ export default function Dashboard() {
   const upcomingEvents = mockEvents.slice(0, 3);
 
   return (
-    <div className="min-h-screen bg-[#F5F5F5]">
-      <Navbar />
+    <div className="min-h-full bg-[#F5F5F5]">
       <main className="container mx-auto px-4 py-8 space-y-8">
         <header>
           <h1 className="text-3xl font-bold text-[#2E7D32] font-headline">Dashboard</h1>

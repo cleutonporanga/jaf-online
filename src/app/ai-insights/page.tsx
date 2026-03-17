@@ -2,8 +2,7 @@
 "use client";
 
 import { useState } from 'react';
-import { Navbar } from '@/components/layout/Navbar';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
   Sparkles, 
@@ -28,7 +27,6 @@ export default function AIInsightsPage() {
   const handleGenerate = async () => {
     setLoading(true);
     try {
-      // Format data for the GenAI flow
       const studentData = studentsInClass.map(s => ({
         id: s.id,
         name: s.name,
@@ -37,7 +35,7 @@ export default function AIInsightsPage() {
           score: g.score,
           maxScore: g.maxScore
         })),
-        participationScore: Math.floor(Math.random() * 40) + 60 // Mock participation
+        participationScore: Math.floor(Math.random() * 40) + 60
       }));
 
       const result = await generatePerformanceHighlights({
@@ -54,8 +52,7 @@ export default function AIInsightsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F5F5]">
-      <Navbar />
+    <div className="min-h-full bg-[#F5F5F5]">
       <main className="container mx-auto px-4 py-8 space-y-8">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>

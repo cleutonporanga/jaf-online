@@ -4,77 +4,66 @@
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-store';
 import { 
-  LayoutDashboard, 
-  Users, 
+  Home, 
   Calendar as CalendarIcon, 
   GraduationCap, 
-  ClipboardCheck, 
-  LogOut,
-  Sparkles,
-  User as UserIcon
+  BarChart3, 
+  FileEdit,
+  Trophy,
+  User as UserIcon,
+  LogOut
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 export function Navbar() {
-  const { user, logout } = useAuth();
+  const { logout, isAuthenticated } = useAuth();
   const pathname = usePathname();
 
   const navItems = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Minhas Turmas', href: '/classes', icon: GraduationCap },
-    { name: 'Frequência', href: '/attendance', icon: ClipboardCheck },
-    { name: 'Notas', href: '/grades', icon: Users },
+    { name: 'Início', href: '/dashboard', icon: Home },
     { name: 'Calendário', href: '/calendar', icon: CalendarIcon },
-    { name: 'IA Insights', href: '/ai-insights', icon: Sparkles },
+    { name: 'Turmas', href: '/classes', icon: GraduationCap },
+    { name: 'Frequência', href: '/attendance', icon: BarChart3 },
+    { name: 'Médias', href: '/grades', icon: FileEdit },
+    { name: 'Destaques', href: '/ai-insights', icon: Trophy },
+    { name: 'Perfil', href: '/profile', icon: UserIcon },
   ];
 
-  return (
-    <nav className="sticky top-0 z-50 w-full bg-[#4CAF50] text-white shadow-md">
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link href="/dashboard" className="flex items-center gap-2 font-bold text-xl">
-          <GraduationCap className="h-8 w-8" />
-          <span className="hidden sm:inline">ScholarView</span>
-        </Link>
+  // We only show the full navigation if the user is logged in
+  if (!isAuthenticated && pathname === '/') return null;
 
-        <div className="hidden md:flex items-center gap-1">
+  return (
+    <nav className="bg-white shadow p-4 sticky top-0 z-50 flex items-center justify-between transition-all">
+      <div className="container mx-auto flex items-center justify-between">
+        <div className="flex flex-wrap gap-4 md:gap-8 items-center">
           {navItems.map((item) => (
-            <Link key={item.href} href={item.href}>
-              <Button
-                variant="ghost"
-                className={cn(
-                  "text-white hover:bg-white/20 gap-2 h-10 transition-colors",
-                  pathname === item.href && "bg-white/20 font-bold"
-                )}
-              >
-                <item.icon className="h-4 w-4" />
-                {item.name}
-              </Button>
+            <Link 
+              key={item.href} 
+              href={item.href}
+              className={cn(
+                "flex items-center gap-2 text-sm font-medium transition-colors hover:text-primary",
+                pathname === item.href ? "text-primary font-bold underline underline-offset-8 decoration-2" : "text-muted-foreground"
+              )}
+            >
+              <item.icon className="h-4 w-4" />
+              <span>{item.name}</span>
             </Link>
           ))}
         </div>
 
-        <div className="flex items-center gap-4">
-          <Link href="/profile">
-            <div className="flex items-center gap-2 cursor-pointer hover:bg-white/10 p-2 rounded-lg transition-colors">
-              <div className="hidden text-right md:block">
-                <p className="text-xs font-medium leading-none">{user?.name}</p>
-                <p className="text-[10px] text-white/80 capitalize">{user?.role}</p>
-              </div>
-              <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center overflow-hidden">
-                {user?.avatar ? (
-                  <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
-                ) : (
-                  <UserIcon className="h-4 w-4" />
-                )}
-              </div>
-            </div>
-          </Link>
-          <Button variant="ghost" size="icon" onClick={logout} className="text-white hover:bg-white/20">
-            <LogOut className="h-5 w-5" />
+        {isAuthenticated && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={logout} 
+            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 gap-2"
+          >
+            <LogOut className="h-4 w-4" />
+            <span className="hidden sm:inline">Sair</span>
           </Button>
-        </div>
+        )}
       </div>
     </nav>
   );

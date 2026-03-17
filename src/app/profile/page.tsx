@@ -2,7 +2,6 @@
 "use client";
 
 import { useState } from 'react';
-import { Navbar } from '@/components/layout/Navbar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +13,8 @@ import {
   Shield, 
   Camera, 
   Save, 
-  UserCog 
+  UserCog,
+  Plus
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -33,8 +33,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F5F5]">
-      <Navbar />
+    <div className="min-h-full bg-[#F5F5F5]">
       <main className="container mx-auto px-4 py-8 space-y-8">
         <header>
           <h1 className="text-3xl font-bold text-[#2E7D32] font-headline">Meu Perfil</h1>
@@ -144,11 +143,5 @@ export default function ProfilePage() {
         </div>
       </main>
     </div>
-  );
-}
-
-function Plus({ className }: { className?: string }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12h14"/><path d="M12 5v14"/></svg>
   );
 }
