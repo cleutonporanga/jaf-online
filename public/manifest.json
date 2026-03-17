@@ -1,22 +1,23 @@
 {
-  "name": "JAF Online",
+  "name": "JAF Online - Escola Joaquim Antônio Filho",
   "short_name": "JAF Online",
-  "description": "Sistema de Gestão Escolar - Escola Joaquim Antônio Filho",
+  "description": "Sistema de Gestão Escolar Inteligente para a Escola Joaquim Antônio Filho.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F5F5F5",
   "theme_color": "#4CAF50",
   "icons": [
     {
-      "src": "https://picsum.photos/seed/jaf1/192/192",
+      "src": "https://picsum.photos/seed/jaf-brand/192/192",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "https://picsum.photos/seed/jaf1/512/512",
+      "src": "https://picsum.photos/seed/jaf-brand/512/512",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

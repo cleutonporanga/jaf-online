@@ -11,6 +11,12 @@
       "description": "Professional teacher avatar",
       "imageUrl": "https://picsum.photos/seed/teacher/150/150",
       "imageHint": "professional person"
+    },
+    {
+      "id": "app-icon",
+      "description": "School institutional icon",
+      "imageUrl": "https://picsum.photos/seed/jaf-brand/512/512",
+      "imageHint": "school icon"
     }
   ]
 }
