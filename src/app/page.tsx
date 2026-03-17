@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/auth-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { GraduationCap, ArrowRight, Loader2, Lock, Mail } from 'lucide-react';
 import { useAuth as useFirebaseAuth, useUser } from '@/firebase';
 import { initiateEmailSignIn } from '@/firebase/non-blocking-login';
@@ -61,7 +61,7 @@ export default function Home() {
             <GraduationCap className="h-12 w-12 text-white" />
           </div>
           <h1 className="text-3xl font-bold font-headline">JAF App</h1>
-          <p className="opacity-90 text-sm">JAF 2026 - Gestão Inteligente</p>
+          <p className="opacity-90 text-sm">Gestão Inteligente</p>
         </div>
         
         <CardContent className="p-8 space-y-6 bg-white">
