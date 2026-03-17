@@ -7,6 +7,13 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 export const metadata: Metadata = {
   title: 'JAF Online - School Management',
   description: 'Modern education management system',
+  manifest: '/manifest.json',
+  themeColor: '#4CAF50',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'JAF Online',
+  },
 };
 
 export default function RootLayout({
@@ -20,6 +27,8 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+        <link rel="icon" href="https://picsum.photos/seed/jaf1/32/32" />
+        <link rel="apple-touch-icon" href="https://picsum.photos/seed/jaf1/180/180" />
       </head>
       <body className="font-body antialiased min-h-screen bg-background flex flex-col">
         <FirebaseClientProvider>
