@@ -13,7 +13,8 @@ import {
   Clock,
   Plus,
   Loader2,
-  Calendar
+  Calendar,
+  Check
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -36,9 +37,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/lib/auth-store';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, serverTimestamp, addDoc } from 'firebase/firestore';
-import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { collection, query, serverTimestamp, doc, arrayUnion } from 'firebase/firestore';
+import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function ClassesPage() {
   const { user } = useAuth();
@@ -46,9 +48,12 @@ export default function ClassesPage() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEnrollDialogOpen, setIsEnrollDialogOpen] = useState(false);
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [enrollLoading, setEnrollLoading] = useState(false);
 
-  // Form state
+  // Form state for new course
   const [newCourse, setNewCourse] = useState({
     name: '',
     description: '',
@@ -71,6 +76,12 @@ export default function ClassesPage() {
 
   const { data: professors } = useCollection(professorsQuery);
   const activeProfessors = professors?.filter(p => p.role === 'professor') || [];
+
+  const studentsQuery = useMemoFirebase(() => {
+    return query(collection(db, 'students'));
+  }, [db]);
+
+  const { data: allStudents } = useCollection(studentsQuery);
 
   const filteredClasses = courses?.filter(c => 
     c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -119,6 +130,43 @@ export default function ClassesPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEnrollStudent = (studentId: string) => {
+    if (!selectedCourseId) return;
+
+    setEnrollLoading(true);
+    try {
+      const courseRef = doc(db, 'courses', selectedCourseId);
+      const studentRef = doc(db, 'students', studentId);
+
+      // Update Course studentIds
+      updateDocumentNonBlocking(courseRef, {
+        studentIds: arrayUnion(studentId),
+        updatedAt: serverTimestamp()
+      });
+
+      // Update Student courseIds
+      updateDocumentNonBlocking(studentRef, {
+        courseIds: arrayUnion(selectedCourseId),
+        updatedAt: serverTimestamp()
+      });
+
+      toast({
+        title: "Matrícula Realizada",
+        description: "O aluno foi matriculado com sucesso nesta turma.",
+        className: "bg-[#E8F5E9] border-[#4CAF50] text-[#2E7D32]",
+      });
+    } catch (error) {
+      console.error("Erro ao matricular aluno:", error);
+    } finally {
+      setEnrollLoading(false);
+    }
+  };
+
+  const openEnrollDialog = (courseId: string) => {
+    setSelectedCourseId(courseId);
+    setIsEnrollDialogOpen(true);
   };
 
   return (
@@ -267,10 +315,16 @@ export default function ClassesPage() {
                         <FileText className="h-3 w-3" />
                         Relatórios
                       </Button>
-                      <Button variant="outline" className="text-xs h-9 gap-1 hover:bg-[#E8F5E9] hover:text-[#2E7D32]">
-                        <UserPlus className="h-3 w-3" />
-                        Matricular
-                      </Button>
+                      {isAdmin && (
+                        <Button 
+                          variant="outline" 
+                          className="text-xs h-9 gap-1 hover:bg-[#E8F5E9] hover:text-[#2E7D32]"
+                          onClick={() => openEnrollDialog(c.id)}
+                        >
+                          <UserPlus className="h-3 w-3" />
+                          Matricular
+                        </Button>
+                      )}
                     </div>
 
                     <Button className="w-full bg-[#4CAF50] hover:bg-[#43a047] h-10 shadow-sm">
@@ -289,6 +343,67 @@ export default function ClassesPage() {
             )}
           </div>
         )}
+
+        <Dialog open={isEnrollDialogOpen} onOpenChange={setIsEnrollDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="text-[#2E7D32]">Matricular Aluno</DialogTitle>
+              <DialogDescription>
+                Selecione os alunos para matricular na turma: 
+                <span className="font-bold ml-1">
+                  {courses?.find(c => c.id === selectedCourseId)?.name}
+                </span>
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4 space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="Buscar aluno por nome..." className="pl-9" />
+              </div>
+              <ScrollArea className="h-72 border rounded-md p-2">
+                <div className="space-y-1">
+                  {allStudents?.map(student => {
+                    const isAlreadyEnrolled = courses?.find(c => c.id === selectedCourseId)?.studentIds?.includes(student.id);
+                    
+                    return (
+                      <div 
+                        key={student.id} 
+                        className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${isAlreadyEnrolled ? 'bg-emerald-50 opacity-60' : 'hover:bg-gray-50'}`}
+                      >
+                        <div>
+                          <p className="font-medium text-sm">{student.firstName} {student.lastName}</p>
+                          <p className="text-xs text-muted-foreground">RA: {student.enrollmentNumber}</p>
+                        </div>
+                        {isAlreadyEnrolled ? (
+                          <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">Matriculado</Badge>
+                        ) : (
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="text-[#4CAF50] hover:text-[#2E7D32] hover:bg-emerald-50 h-8 gap-1"
+                            onClick={() => handleEnrollStudent(student.id)}
+                            disabled={enrollLoading}
+                          >
+                            <UserPlus className="h-3 w-3" />
+                            Matricular
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {(!allStudents || allStudents.length === 0) && (
+                    <p className="text-sm text-center text-muted-foreground py-8">Nenhum aluno cadastrado no sistema.</p>
+                  )}
+                </div>
+              </ScrollArea>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEnrollDialogOpen(false)} className="w-full">
+                Fechar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
