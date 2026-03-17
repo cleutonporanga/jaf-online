@@ -43,12 +43,14 @@ export default function MeetingsPage() {
   const { toast } = useToast();
   
   const [selectedClassId, setSelectedClassId] = useState<string>("");
-  const isReadOnly = appUser?.role === 'aluno';
+  
+  // Regra: Apenas administrador pode registrar presença de pais
+  const isReadOnly = appUser?.role !== 'administrador';
   const today = new Date().toISOString().split('T')[0];
 
   const classesQuery = useMemoFirebase(() => {
-    if (!firebaseUser) return null;
-    if (appUser?.role === 'administrador' || appUser?.role === 'aluno') {
+    if (!firebaseUser || !appUser) return null;
+    if (appUser.role === 'administrador' || appUser.role === 'aluno') {
       return query(collection(db, 'courses'));
     }
     return query(collection(db, 'courses'), where('professorId', '==', firebaseUser.uid));
@@ -193,7 +195,7 @@ export default function MeetingsPage() {
         {isReadOnly && (
           <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-3 text-amber-800">
             <AlertTriangle className="h-5 w-5" />
-            <p className="text-sm font-medium">Você está acessando como visualizador. Edições não são permitidas.</p>
+            <p className="text-sm font-medium">Apenas administradores podem registrar a presença de pais.</p>
           </div>
         )}
 

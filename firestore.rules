@@ -70,7 +70,7 @@ service cloud.firestore {
 
     match /meetingAttendance/{attendanceId} {
       allow list, get: if isSignedIn();
-      allow create, update: if isStaff();
+      allow create, update: if isAdmin(); // Apenas administrador pode editar reuniões
       allow delete: if isAdmin();
     }
 
