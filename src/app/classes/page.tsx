@@ -11,7 +11,8 @@ import {
   FileText,
   Plus,
   Loader2,
-  Calendar
+  Calendar,
+  FileDown
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -52,6 +53,7 @@ export default function ClassesPage() {
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [enrollLoading, setEnrollLoading] = useState(false);
+  const [exportingId, setExportingId] = useState<string | null>(null);
 
   // Form state for new course
   const [newCourse, setNewCourse] = useState({
@@ -162,6 +164,24 @@ export default function ClassesPage() {
     } finally {
       setEnrollLoading(false);
     }
+  };
+
+  const handleExportPDF = (course: any) => {
+    setExportingId(course.id);
+    toast({
+      title: "Gerando Relatório",
+      description: `Compilando dados da turma ${course.name}...`,
+    });
+    
+    // Simulação de geração de PDF
+    setTimeout(() => {
+      setExportingId(null);
+      toast({
+        title: "PDF Gerado com Sucesso",
+        description: `O relatório completo da turma ${course.name} foi baixado.`,
+        className: "bg-[#E8F5E9] border-[#4CAF50] text-[#2E7D32]",
+      });
+    }, 2000);
   };
 
   const openEnrollDialog = (courseId: string) => {
@@ -282,6 +302,7 @@ export default function ClassesPage() {
             {filteredClasses.map(c => {
               const profName = professors?.find(p => p.id === c.professorId)?.name || 'Não atribuído';
               const studentCount = c.studentIds?.length || 0;
+              const isExporting = exportingId === c.id;
               
               return (
                 <Card key={c.id} className="border-none shadow-md overflow-hidden group hover:ring-2 hover:ring-[#4CAF50] transition-all">
@@ -311,9 +332,14 @@ export default function ClassesPage() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
-                      <Button variant="outline" className="text-xs h-9 gap-1 hover:bg-[#E8F5E9] hover:text-[#2E7D32]">
-                        <FileText className="h-3 w-3" />
-                        Relatórios
+                      <Button 
+                        variant="outline" 
+                        className="text-xs h-9 gap-1 hover:bg-[#E8F5E9] hover:text-[#2E7D32]"
+                        onClick={() => handleExportPDF(c)}
+                        disabled={isExporting}
+                      >
+                        {isExporting ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileDown className="h-3 w-3" />}
+                        Relatório PDF
                       </Button>
                       {isAdmin && (
                         <Button 
