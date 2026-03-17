@@ -8,11 +8,11 @@ import {
   Search, 
   MoreVertical, 
   UserPlus, 
-  FileText,
   Plus,
   Loader2,
   Calendar,
-  FileDown
+  FileDown,
+  Trash2
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -32,25 +32,41 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/lib/auth-store';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, serverTimestamp, doc, arrayUnion } from 'firebase/firestore';
-import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useRouter } from 'next/navigation';
 
 export default function ClassesPage() {
   const { user } = useAuth();
   const db = useFirestore();
   const { toast } = useToast();
-  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEnrollDialogOpen, setIsEnrollDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const [courseToDelete, setCourseToDelete] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [enrollLoading, setEnrollLoading] = useState(false);
   const [exportingId, setExportingId] = useState<string | null>(null);
@@ -189,6 +205,25 @@ export default function ClassesPage() {
     setIsEnrollDialogOpen(true);
   };
 
+  const confirmDeleteCourse = (course: any) => {
+    setCourseToDelete(course);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteCourse = () => {
+    if (!courseToDelete) return;
+
+    const courseRef = doc(db, 'courses', courseToDelete.id);
+    deleteDocumentNonBlocking(courseRef);
+
+    toast({
+      title: "Turma Excluída",
+      description: `A turma ${courseToDelete.name} foi removida permanentemente.`,
+    });
+    setIsDeleteDialogOpen(false);
+    setCourseToDelete(null);
+  };
+
   return (
     <div className="min-h-full bg-[#F5F5F5]">
       <main className="container mx-auto px-4 py-8 space-y-8">
@@ -312,9 +347,25 @@ export default function ClassesPage() {
                       <Badge variant="secondary" className="bg-[#E8F5E9] text-[#2E7D32] hover:bg-[#E8F5E9] border-none">
                         {c.gradeLevel}
                       </Badge>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
+                      
+                      {isAdmin && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem 
+                              className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+                              onClick={() => confirmDeleteCourse(c)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Excluir Turma
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </div>
                     <CardTitle className="text-xl mt-2 group-hover:text-[#2E7D32] transition-colors">{c.name}</CardTitle>
                     <UICardDescription>JAF 2026 - {c.year}</UICardDescription>
@@ -426,6 +477,28 @@ export default function ClassesPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Delete Confirmation Alert */}
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação não pode ser desfeita. Isso excluirá permanentemente a turma 
+                <strong> {courseToDelete?.name}</strong> e todos os registros associados a ela serão removidos.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleDeleteCourse}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Excluir Turma
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </main>
     </div>
   );
