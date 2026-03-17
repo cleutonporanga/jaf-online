@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -41,7 +40,7 @@ export default function AttendancePage() {
 
   const classesQuery = useMemoFirebase(() => {
     if (!user) return null;
-    return collection(db, 'courses');
+    return query(collection(db, 'courses'), where('professorId', '==', user.uid));
   }, [db, user]);
   
   const { data: classes, isLoading: loadingClasses } = useCollection(classesQuery);
@@ -200,7 +199,7 @@ export default function AttendancePage() {
             )}
             {students?.length === 0 && !loadingStudents && (
               <div className="p-12 text-center">
-                <p className="text-muted-foreground italic">Nenhum aluno matriculado nesta turma.</p>
+                <p className="text-muted-foreground italic">Nenhum aluno matriculado nesta turma ou permissão insuficiente.</p>
               </div>
             )}
           </CardContent>

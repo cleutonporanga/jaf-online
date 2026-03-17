@@ -2,33 +2,9 @@
  * ScholarView Security Rules (Prototyping Mode)
  *
  * Core Philosophy: 
- * This ruleset enforces a strict role-based and ownership-based access model designed for an 
- * educational environment. It prioritizes the security of student data (grades, attendance, highlights) 
- * while maintaining flexibility for rapid development by not enforcing rigid schemas for content fields.
- *
- * Data Structure:
- * The application utilizes a flat, top-level collection structure for all major entities 
- * (UserProfiles, Courses, Students, Attendance, Grades, Events, Highlights). This structure 
- * relies heavily on denormalized UIDs (e.g., professorId, studentIds, courseProfessorId) 
- * to facilitate efficient authorization checks without cross-document lookups.
- *
- * Key Security Decisions:
- * 1. Admin Override: Users with the 'administrador' role in their profile have full CRUD access 
- *    across all collections to facilitate system-wide management.
- * 2. User Isolation: User profiles are strictly locked to the owner (matching the Auth UID) 
- *    to prevent unauthorized profile modification.
- * 3. Relational Authorization: Access to student-specific data (Attendance, Grades, Highlights) 
- *    is granted only to the professor assigned to the related course or the student themselves 
- *    via denormalized fields on the documents.
- * 4. Relational Integrity: On creation, documents must include the correct linking IDs 
- *    (e.g., creatorId, userId) matching the authenticated user to ensure data remains correctly associated.
- * 5. List Operations: Listing is restricted to owners for path-based collections or admins 
- *    for top-level collections to prevent broad data scraping, adhering to strict query security.
- *
- * Denormalization for Authorization:
- * To ensure high performance and avoid the limits of security rule lookups, critical access 
- * control fields (like professor IDs and student account UIDs) are copied directly onto 
- * records like GradeRecord and AttendanceRecord.
+ * This ruleset enforces a strict role-based and ownership-based access model.
+ * It uses denormalized UIDs (e.g., professorId, studentIds, courseProfessorId) 
+ * to facilitate efficient authorization checks.
  */
 
 rules_version = '2';
@@ -37,135 +13,72 @@ service cloud.firestore {
 
     // --- Helper Functions ---
 
-    /** @description Checks if the user is authenticated with a valid UID. */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /** @description Checks if the authenticated user matches the provided ID. */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /** @description Checks if a user has a specific role by performing a document lookup. */
-    function hasRole(role) {
-      return isSignedIn() && get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.role == role;
-    }
-
-    /** @description Specific check for the administrator role. */
     function isAdmin() {
-      return hasRole('administrador');
-    }
-
-    /** @description Combines ownership and existence checks for updates and deletes. */
-    function isExistingOwner(userId) {
-      return resource != null && isOwner(userId);
+      return isSignedIn() && 
+        get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.role == 'administrador';
     }
 
     // --- Collection Rules ---
 
-    /**
-     * @description Rules for user profile documents. Ensures users can only manage their own profile and admins can manage all.
-     * @path /userProfiles/{userId}
-     * @allow (get) Authenticated user matching the userId path.
-     * @deny (create) Mismatched userId in the document data compared to the path.
-     * @principle Restricts access to a user's own data tree and enforces path/field consistency.
-     */
     match /userProfiles/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isOwner(userId) || isAdmin();
+      allow get, list: if isOwner(userId) || isAdmin();
       allow create: if (isOwner(userId) || isAdmin()) && request.resource.data.id == userId;
-      allow update: if (isExistingOwner(userId) || isAdmin()) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId) || isAdmin();
+      allow update: if (isOwner(userId) || isAdmin());
+      allow delete: if isAdmin();
     }
 
-    /**
-     * @description Rules for Courses. Admins manage courses; professors and students have read access based on membership.
-     * @path /courses/{courseId}
-     * @allow (get) A professor assigned to the course (matching professorId).
-     * @deny (update) A professor trying to change the course's professorId (immutability).
-     * @principle Uses denormalized roles (professorId/studentIds) for zero-lookup authorization.
-     */
     match /courses/{courseId} {
+      // Permite listar se for admin ou se a consulta for filtrada pelo professorId ou se o usuário for um estudante matriculado
+      allow list: if isSignedIn() && (isAdmin() || resource.data.professorId == request.auth.uid || request.auth.uid in resource.data.studentIds);
       allow get: if isSignedIn() && (isAdmin() || resource.data.professorId == request.auth.uid || request.auth.uid in resource.data.studentIds);
-      allow list: if isAdmin();
-      allow create: if isAdmin();
-      allow update: if (isAdmin() || (resource != null && resource.data.professorId == request.auth.uid)) && request.resource.data.professorId == resource.data.professorId;
+      allow create: if isAdmin() || (isSignedIn() && request.resource.data.professorId == request.auth.uid);
+      allow update: if isAdmin() || (isSignedIn() && resource.data.professorId == request.auth.uid);
       allow delete: if isAdmin();
     }
 
-    /**
-     * @description Rules for Student records. Ensures privacy of student data while allowing associated professors to view.
-     * @path /students/{studentId}
-     * @allow (get) The student viewing their own record via associatedUserId.
-     * @deny (list) Non-admin users attempting to list all students.
-     * @principle Enforces privacy through UID associations.
-     */
     match /students/{studentId} {
+      allow list: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.professorIds || resource.data.associatedUserId == request.auth.uid);
       allow get: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.professorIds || resource.data.associatedUserId == request.auth.uid);
-      allow list: if isAdmin();
-      allow create: if isAdmin();
-      allow update: if isAdmin();
+      allow create, update: if isAdmin();
       allow delete: if isAdmin();
     }
 
-    /**
-     * @description Rules for Attendance Records. Access restricted to the course professor and the student.
-     * @path /attendanceRecords/{attendanceId}
-     * @allow (create) Professor creating a record where recordedByProfessorId matches their UID.
-     * @deny (delete) Anyone other than an admin.
-     * @principle Enforces relational integrity between the recorder and the recorded record.
-     */
     match /attendanceRecords/{attendanceId} {
-      allow get: if isSignedIn() && (isAdmin() || resource.data.courseProfessorId == request.auth.uid || resource.data.studentAssociatedUserId == request.auth.uid);
-      allow list: if isAdmin();
+      allow list, get: if isSignedIn() && (isAdmin() || resource.data.courseProfessorId == request.auth.uid || resource.data.studentAssociatedUserId == request.auth.uid);
       allow create: if isSignedIn() && (isAdmin() || request.resource.data.recordedByProfessorId == request.auth.uid);
-      allow update: if isSignedIn() && (isAdmin() || (resource != null && resource.data.courseProfessorId == request.auth.uid)) && request.resource.data.courseProfessorId == resource.data.courseProfessorId;
+      allow update: if isSignedIn() && (isAdmin() || resource.data.courseProfessorId == request.auth.uid);
       allow delete: if isAdmin();
     }
 
-    /**
-     * @description Rules for Grade Records. Protects academic performance data.
-     * @path /gradeRecords/{gradeId}
-     * @allow (get) Student viewing their own grade.
-     * @deny (create) A user attempting to record a grade as a different professor.
-     * @principle Protects sensitive student data via UID-based resource checking.
-     */
     match /gradeRecords/{gradeId} {
-      allow get: if isSignedIn() && (isAdmin() || resource.data.courseProfessorId == request.auth.uid || resource.data.studentAssociatedUserId == request.auth.uid);
-      allow list: if isAdmin();
+      allow list, get: if isSignedIn() && (isAdmin() || resource.data.courseProfessorId == request.auth.uid || resource.data.studentAssociatedUserId == request.auth.uid);
       allow create: if isSignedIn() && (isAdmin() || request.resource.data.recordedByProfessorId == request.auth.uid);
-      allow update: if isSignedIn() && (isAdmin() || (resource != null && resource.data.courseProfessorId == request.auth.uid)) && request.resource.data.courseProfessorId == resource.data.courseProfessorId;
+      allow update: if isSignedIn() && (isAdmin() || resource.data.courseProfessorId == request.auth.uid);
       allow delete: if isAdmin();
     }
 
-    /**
-     * @description Rules for School Events. Supports both global events and course-specific events.
-     * @path /schoolEvents/{eventId}
-     * @allow (get) A student viewing an event associated with their course.
-     * @deny (create) Unauthenticated users.
-     * @principle Facilitates scoped visibility using array-based denormalization.
-     */
     match /schoolEvents/{eventId} {
-      allow get: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.associatedCourseProfessorIds || request.auth.uid in resource.data.associatedCourseStudentIds || (resource.data.associatedCourseProfessorIds.size() == 0 && resource.data.associatedCourseStudentIds.size() == 0));
-      allow list: if isAdmin();
-      allow create: if isSignedIn() && (isAdmin() || request.resource.data.createdByUserId == request.auth.uid);
-      allow update: if isSignedIn() && (isAdmin() || (resource != null && resource.data.createdByUserId == request.auth.uid)) && request.resource.data.createdByUserId == resource.data.createdByUserId;
-      allow delete: if isAdmin() || (resource != null && resource.data.createdByUserId == request.auth.uid);
+      allow list, get: if isSignedIn() && (
+        isAdmin() || 
+        request.auth.uid in resource.data.associatedCourseProfessorIds || 
+        request.auth.uid in resource.data.associatedCourseStudentIds || 
+        (resource.data.associatedCourseProfessorIds.size() == 0 && resource.data.associatedCourseStudentIds.size() == 0)
+      );
+      allow create, update, delete: if isSignedIn() && (isAdmin() || resource.data.createdByUserId == request.auth.uid);
     }
 
-    /**
-     * @description Rules for Student Highlights (AI Insights). Restricts visibility to relevant faculty and the student.
-     * @path /studentHighlights/{highlightId}
-     * @allow (update) Professor acknowledging a highlight.
-     * @deny (create) General users (reserved for system/admin).
-     * @principle Validates internal links to ensure highlights are only seen by authorized parties.
-     */
     match /studentHighlights/{highlightId} {
-      allow get: if isSignedIn() && (isAdmin() || resource.data.courseProfessorId == request.auth.uid || resource.data.studentAssociatedUserId == request.auth.uid);
-      allow list: if isAdmin();
-      allow create: if isAdmin(); // Usually created by a system service or admin
-      allow update: if isSignedIn() && (isAdmin() || (resource != null && resource.data.courseProfessorId == request.auth.uid));
+      allow list, get: if isSignedIn() && (isAdmin() || resource.data.courseProfessorId == request.auth.uid || resource.data.studentAssociatedUserId == request.auth.uid);
+      allow create: if isAdmin();
+      allow update: if isSignedIn() && (isAdmin() || resource.data.courseProfessorId == request.auth.uid);
       allow delete: if isAdmin();
     }
   }

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,25 +10,32 @@ import {
   Loader2 
 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, orderBy, limit } from 'firebase/firestore';
+import { collection, query, orderBy, limit, where } from 'firebase/firestore';
 
 export default function Dashboard() {
   const db = useFirestore();
   const { user, isUserLoading: authLoading } = useUser();
   
+  // Consulta filtrada para o professor logado
   const coursesQuery = useMemoFirebase(() => {
     if (!user) return null;
-    return collection(db, 'courses');
+    return query(collection(db, 'courses'), where('professorId', '==', user.uid));
   }, [db, user]);
 
+  // Consulta filtrada para alunos que o professor ensina
   const studentsQuery = useMemoFirebase(() => {
     if (!user) return null;
-    return collection(db, 'students');
+    return query(collection(db, 'students'), where('professorIds', 'array-contains', user.uid));
   }, [db, user]);
 
   const eventsQuery = useMemoFirebase(() => {
     if (!user) return null;
-    return query(collection(db, 'schoolEvents'), orderBy('startDate', 'asc'), limit(3));
+    return query(
+      collection(db, 'schoolEvents'), 
+      where('associatedCourseProfessorIds', 'array-contains', user.uid),
+      orderBy('startDate', 'asc'), 
+      limit(3)
+    );
   }, [db, user]);
 
   const { data: courses, isLoading: loadingCourses } = useCollection(coursesQuery);
@@ -121,7 +127,7 @@ export default function Dashboard() {
                     </div>
                   ))}
                   {(!courses || courses.length === 0) && (
-                    <p className="text-sm text-center text-muted-foreground">Nenhuma turma cadastrada.</p>
+                    <p className="text-sm text-center text-muted-foreground">Nenhuma turma cadastrada sob sua supervisão.</p>
                   )}
                 </CardContent>
               </Card>
