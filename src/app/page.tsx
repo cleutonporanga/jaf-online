@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -123,21 +124,6 @@ export default function Home() {
           </div>
         </CardContent>
       </Card>
-      
-      <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl">
-        <FeatureCard title="Gestão de Turmas" desc="Controle total sobre alunos e atribuições." />
-        <FeatureCard title="Diário Digital" desc="Frequência e notas em tempo real." />
-        <FeatureCard title="IA Insights" desc="Análise preditiva de desempenho." />
-      </div>
-    </div>
-  );
-}
-
-function FeatureCard({ title, desc }: { title: string, desc: string }) {
-  return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center text-center hover:shadow-md transition-shadow">
-      <h3 className="font-bold text-[#2E7D32] mb-1">{title}</h3>
-      <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
     </div>
   );
 }
