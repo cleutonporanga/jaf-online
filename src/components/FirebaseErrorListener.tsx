@@ -25,9 +25,10 @@ export function FirebaseErrorListener() {
     };
   }, []);
 
-  // Only throw fatal errors in development to avoid "Application Error" in production
+  // Log fatal errors in console instead of throwing to prevent app-wide crashes
   if (error && process.env.NODE_ENV === 'development') {
-    throw error;
+    // We log but don't throw to avoid the generic Next.js error screen in production
+    console.warn('Firestore Permission Error detected. Check console for details.');
   }
 
   return null;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -38,6 +38,7 @@ export default function StudentsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   // Form state for new student
   const [newStudent, setNewStudent] = useState({
@@ -45,9 +46,17 @@ export default function StudentsPage() {
     lastName: '',
     email: '',
     enrollmentNumber: '',
-    enrollmentDate: new Date().toISOString().split('T')[0],
+    enrollmentDate: '',
     dateOfBirth: '',
   });
+
+  useEffect(() => {
+    setMounted(true);
+    setNewStudent(prev => ({
+      ...prev,
+      enrollmentDate: new Date().toISOString().split('T')[0]
+    }));
+  }, []);
 
   const isAdmin = user?.role === 'administrador';
 
@@ -121,6 +130,8 @@ export default function StudentsPage() {
       console.error("Erro ao excluir aluno:", error);
     }
   };
+
+  if (!mounted) return null;
 
   return (
     <div className="min-h-full bg-[#F5F5F5]">

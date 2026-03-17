@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useRef } from 'react';
@@ -57,7 +56,6 @@ export function Navbar() {
             const data = userSnap.data();
             const currentRoleInDb = data.role as UserRole;
             
-            // Override role based on email priority
             const targetRole = (firebaseUser.email === ADMIN_EMAIL) ? 'administrador' : 
                                (firebaseUser.email === STUDENT_EMAIL) ? 'aluno' : 
                                (firebaseUser.email === TEACHER_EMAIL) ? 'professor' : 
@@ -81,18 +79,19 @@ export function Navbar() {
           setAuth(firebaseUser, role);
         } catch (error) {
           console.error("Erro ao sincronizar perfil:", error);
-          setAuth(firebaseUser, 'professor');
+          // Only set auth if we haven't already
+          if (!isAuthenticated) setAuth(firebaseUser, 'professor');
         } finally {
           setSyncing(false);
           syncInProgress.current = false;
         }
-      } else if (!isUserLoading && !firebaseUser) {
+      } else if (!isUserLoading && !firebaseUser && isAuthenticated) {
         logout();
       }
     };
 
     syncUser();
-  }, [firebaseUser, isUserLoading, setAuth, logout, db]);
+  }, [firebaseUser?.uid, isUserLoading, db, isAuthenticated]); // Narrower dependencies to avoid loops
 
   const handleLogout = async () => {
     if (firebaseAuth) {

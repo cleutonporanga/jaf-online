@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -43,9 +42,15 @@ export default function MeetingsPage() {
   const { toast } = useToast();
   
   const [selectedClassId, setSelectedClassId] = useState<string>("");
+  const [mounted, setMounted] = useState(false);
+  const [today, setToday] = useState("");
   
   const isReadOnly = appUser?.role !== 'administrador';
-  const today = useMemo(() => new Date().toISOString().split('T')[0], []);
+
+  useEffect(() => {
+    setMounted(true);
+    setToday(new Date().toISOString().split('T')[0]);
+  }, []);
 
   const classesQuery = useMemoFirebase(() => {
     if (!db || !firebaseUser || !appUser) return null;
@@ -73,7 +78,7 @@ export default function MeetingsPage() {
   const [attendance, setAttendance] = useState<Record<string, { present: boolean, observation: string }>>({});
 
   const meetingRecordsQuery = useMemoFirebase(() => {
-    if (!db || !selectedClassId) return null;
+    if (!db || !selectedClassId || !today) return null;
     return query(collection(db, 'meetingAttendance'), where('courseId', '==', selectedClassId), where('date', '==', today));
   }, [db, selectedClassId, today]);
 
@@ -125,7 +130,7 @@ export default function MeetingsPage() {
   }, [students, attendance]);
 
   const handleSave = () => {
-    if (isReadOnly || !firebaseUser || !selectedClassId || !db) return;
+    if (isReadOnly || !firebaseUser || !selectedClassId || !db || !today) return;
 
     students?.forEach(student => {
       const record = attendance[student.id] || { present: false, observation: '' };
@@ -157,7 +162,7 @@ export default function MeetingsPage() {
     absent: { label: "Ausente", color: "#E0E0E0" },
   };
 
-  if (authLoading || (loadingClasses && !classes)) {
+  if (!mounted || authLoading || (loadingClasses && !classes)) {
     return <div className="flex h-[80vh] items-center justify-center"><Loader2 className="animate-spin text-[#4CAF50]" /></div>;
   }
 
