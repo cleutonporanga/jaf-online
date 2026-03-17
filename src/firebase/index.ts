@@ -1,3 +1,4 @@
+
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
@@ -36,9 +37,9 @@ export function initializeFirebase() {
   }
 
   return {
-    firebaseApp: null as any,
-    auth: null as any,
-    firestore: null as any
+    firebaseApp: null,
+    auth: null,
+    firestore: null
   };
 }
 

@@ -21,75 +21,75 @@ import {
 import { Button } from '@/components/ui/button';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { useAuth as useFirebaseAuth, useUser, useFirestore } from '@/firebase';
+import { useAuth as useFirebaseAuth, useUser, useFirestore, useFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 const ADMIN_EMAILS = ['cleutonlima06@gmail.com', 'cleutonporanga@gmail.com'];
 
 export function Navbar() {
-  const firebaseAuth = useFirebaseAuth();
-  const db = useFirestore();
+  const { auth: firebaseAuth, firestore: db } = useFirebase();
   const { user: firebaseUser, isUserLoading } = useUser();
   const { user, setAuth, logout, isAuthenticated } = useAuthStore();
   const pathname = usePathname();
   const router = useRouter();
   const [syncing, setSyncing] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const syncInProgress = useRef(false);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
     const syncUser = async () => {
-      if (!isUserLoading && firebaseUser && db && !syncInProgress.current) {
-        syncInProgress.current = true;
-        setSyncing(true);
-        try {
-          const userRef = doc(db, 'userProfiles', firebaseUser.uid);
-          const userSnap = await getDoc(userRef);
-          
-          let role: UserRole = 'professor';
-          const userEmail = firebaseUser.email?.toLowerCase();
+      if (!mounted || isUserLoading || !firebaseUser || !db || syncInProgress.current) return;
+      
+      syncInProgress.current = true;
+      setSyncing(true);
+      try {
+        const userRef = doc(db, 'userProfiles', firebaseUser.uid);
+        const userSnap = await getDoc(userRef);
+        
+        let role: UserRole = 'professor';
+        const userEmail = firebaseUser.email?.toLowerCase();
 
-          // Identificação imediata de administradores configurados
-          if (userEmail && ADMIN_EMAILS.includes(userEmail)) {
-            role = 'administrador';
-          }
-
-          if (userSnap.exists()) {
-            const data = userSnap.data();
-            const currentRoleInDb = data.role as UserRole;
-            
-            // Força o papel de administrador se estiver na lista permitida
-            if (role === 'administrador' && currentRoleInDb !== 'administrador') {
-              await setDoc(userRef, { role: 'administrador', updatedAt: serverTimestamp() }, { merge: true });
-            } else {
-              role = currentRoleInDb;
-            }
-          } else {
-            // Cria o perfil inicial se não existir
-            await setDoc(userRef, {
-              id: firebaseUser.uid,
-              name: firebaseUser.displayName || userEmail?.split('@')[0] || 'Usuário',
-              email: firebaseUser.email,
-              role: role,
-              createdAt: serverTimestamp(),
-              updatedAt: serverTimestamp()
-            });
-          }
-          
-          setAuth(firebaseUser, role);
-        } catch (error) {
-          console.error("Erro ao sincronizar perfil:", error);
-        } finally {
-          setSyncing(false);
-          syncInProgress.current = false;
+        // Identificação prioritária de administradores
+        if (userEmail && ADMIN_EMAILS.includes(userEmail)) {
+          role = 'administrador';
         }
-      } else if (!isUserLoading && !firebaseUser && isAuthenticated) {
-        logout();
+
+        if (userSnap.exists()) {
+          const data = userSnap.data();
+          const currentRoleInDb = data.role as UserRole;
+          
+          if (role === 'administrador' && currentRoleInDb !== 'administrador') {
+            await setDoc(userRef, { role: 'administrador', updatedAt: serverTimestamp() }, { merge: true });
+          } else {
+            role = currentRoleInDb;
+          }
+        } else {
+          await setDoc(userRef, {
+            id: firebaseUser.uid,
+            name: firebaseUser.displayName || userEmail?.split('@')[0] || 'Usuário',
+            email: firebaseUser.email,
+            role: role,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          });
+        }
+        
+        setAuth(firebaseUser, role);
+      } catch (error) {
+        console.error("Erro ao sincronizar perfil:", error);
+      } finally {
+        setSyncing(false);
+        syncInProgress.current = false;
       }
     };
 
     syncUser();
-  }, [firebaseUser?.uid, isUserLoading, db, setAuth, logout, isAuthenticated]);
+  }, [firebaseUser?.uid, isUserLoading, db, setAuth, logout, isAuthenticated, mounted]);
 
   const handleLogout = async () => {
     if (firebaseAuth) {
@@ -98,6 +98,8 @@ export function Navbar() {
       router.push('/');
     }
   };
+
+  if (!mounted) return null;
 
   const navItems = [
     { name: 'Início', href: '/dashboard', icon: Home },

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -22,8 +23,10 @@ export default function Home() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     if (isAuthenticated) {
       router.push('/dashboard');
     }
@@ -41,7 +44,6 @@ export default function Home() {
     }
 
     if (!auth) {
-      // This case is now handled by disabling the button, but kept for safety.
       toast({
         variant: "destructive",
         title: "Sistema em inicialização",
@@ -64,7 +66,10 @@ export default function Home() {
     }
   };
 
+  if (!mounted) return null;
+
   const isAuthReady = !!auth;
+  const isPending = loading || isUserLoading || !isAuthReady;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[#F5F5F5] font-body">
@@ -90,7 +95,7 @@ export default function Home() {
                   className="pl-10 h-11"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  disabled={loading || isUserLoading || !isAuthReady}
+                  disabled={isPending}
                   required
                 />
               </div>
@@ -107,7 +112,7 @@ export default function Home() {
                   className="pl-10 h-11"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  disabled={loading || isUserLoading || !isAuthReady}
+                  disabled={isPending}
                   required
                 />
               </div>
@@ -116,12 +121,12 @@ export default function Home() {
             <Button 
               type="submit"
               className="w-full h-12 text-lg bg-[#4CAF50] hover:bg-[#43a047] gap-2 rounded-xl shadow-lg transition-all"
-              disabled={loading || isUserLoading || isAuthenticated || !isAuthReady}
+              disabled={isPending || isAuthenticated}
             >
-              {loading || isUserLoading || !isAuthReady ? (
+              {isPending ? (
                 <div className="flex items-center gap-2">
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  <span>Carregando...</span>
+                  <span>Conectando...</span>
                 </div>
               ) : (
                 <>
