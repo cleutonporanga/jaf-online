@@ -41,6 +41,8 @@ export default function ProfilePage() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+  const isStudent = user?.role === 'aluno';
+
   // New professor form state
   const [newProfessor, setNewProfessor] = useState({
     name: '',
@@ -109,12 +111,14 @@ export default function ProfilePage() {
                     <UserIcon className="h-16 w-16 text-gray-300" />
                   )}
                 </div>
-                <button className="absolute bottom-0 right-0 bg-[#4CAF50] text-white p-2 rounded-full shadow-lg hover:bg-[#43a047] transition-colors">
-                  <Camera className="h-4 w-4" />
-                </button>
+                {!isStudent && (
+                  <button className="absolute bottom-0 right-0 bg-[#4CAF50] text-white p-2 rounded-full shadow-lg hover:bg-[#43a047] transition-colors">
+                    <Camera className="h-4 w-4" />
+                  </button>
+                )}
               </div>
               <h2 className="mt-4 text-xl font-bold text-gray-800">{user?.name}</h2>
-              <p className="text-xs text-emerald-600 font-bold uppercase tracking-widest">{user?.role}</p>
+              <p className="text-xs text-emerald-600 font-bold uppercase tracking-widest">{user?.role === 'aluno' ? 'Aluno' : user?.role}</p>
               
               <div className="mt-8 w-full border-t pt-6 space-y-4">
                  <div className="flex items-center justify-between text-sm">
@@ -148,6 +152,7 @@ export default function ProfilePage() {
                         value={name} 
                         onChange={(e) => setName(e.target.value)} 
                         className="pl-9 bg-white"
+                        disabled={isStudent}
                       />
                     </div>
                   </div>
@@ -170,17 +175,21 @@ export default function ProfilePage() {
                   <Label>Tipo de Acesso</Label>
                   <div className="flex items-center gap-2 p-3 bg-emerald-50 rounded-lg border border-emerald-100">
                     <Shield className="h-4 w-4 text-[#4CAF50]" />
-                    <span className="text-sm font-bold capitalize text-[#2E7D32]">{user?.role}</span>
+                    <span className="text-sm font-bold capitalize text-[#2E7D32]">
+                      {user?.role === 'aluno' ? 'Visualizador (Aluno)' : user?.role}
+                    </span>
                   </div>
                   <p className="text-[10px] text-muted-foreground italic">O seu nível de acesso é definido pela administração central.</p>
                 </div>
 
-                <div className="pt-4 flex justify-end">
-                  <Button onClick={handleSave} className="bg-[#4CAF50] hover:bg-[#43a047] gap-2 shadow-md px-8">
-                    <Save className="h-4 w-4" />
-                    Salvar Alterações
-                  </Button>
-                </div>
+                {!isStudent && (
+                  <div className="pt-4 flex justify-end">
+                    <Button onClick={handleSave} className="bg-[#4CAF50] hover:bg-[#43a047] gap-2 shadow-md px-8">
+                      <Save className="h-4 w-4" />
+                      Salvar Alterações
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
