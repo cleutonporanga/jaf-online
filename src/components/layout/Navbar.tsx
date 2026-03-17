@@ -1,8 +1,9 @@
 
 "use client";
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useAuth } from '@/lib/auth-store';
+import { useAuth, type UserRole } from '@/lib/auth-store';
 import { 
   Home, 
   Calendar as CalendarIcon, 
@@ -12,28 +13,77 @@ import {
   Trophy,
   User as UserIcon,
   LogOut,
-  Users
+  Users,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { useAuth as useFirebaseAuth, useUser } from '@/firebase';
-import { useEffect } from 'react';
+import { useAuth as useFirebaseAuth, useUser, useFirestore } from '@/firebase';
 import { signOut } from 'firebase/auth';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+
+const ADMIN_EMAIL = 'cleutonlima06@gmail.com';
 
 export function Navbar() {
   const firebaseAuth = useFirebaseAuth();
+  const db = useFirestore();
   const { user: firebaseUser, isUserLoading } = useUser();
   const { user, setAuth, logout, isAuthenticated } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
-    // Sincroniza o estado do Firebase com o store do Zustand
-    if (!isUserLoading) {
-      setAuth(firebaseUser);
-    }
-  }, [firebaseUser, isUserLoading, setAuth]);
+    const syncUser = async () => {
+      if (!isUserLoading && firebaseUser) {
+        setSyncing(true);
+        try {
+          const userRef = doc(db, 'userProfiles', firebaseUser.uid);
+          const userSnap = await getDoc(userRef);
+          
+          let role: UserRole = 'professor';
+          
+          // Lógica especial para o administrador definido
+          if (firebaseUser.email === ADMIN_EMAIL) {
+            role = 'administrador';
+          }
+
+          if (userSnap.exists()) {
+            const data = userSnap.data();
+            role = data.role as UserRole;
+            
+            // Força admin se for o email específico mesmo se o banco estiver diferente
+            if (firebaseUser.email === ADMIN_EMAIL && role !== 'administrador') {
+              role = 'administrador';
+              await setDoc(userRef, { role: 'administrador', updatedAt: serverTimestamp() }, { merge: true });
+            }
+          } else {
+            // Cria o perfil inicial
+            await setDoc(userRef, {
+              id: firebaseUser.uid,
+              name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuário',
+              email: firebaseUser.email,
+              role: role,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp()
+            });
+          }
+          
+          setAuth(firebaseUser, role);
+        } catch (error) {
+          console.error("Erro ao sincronizar perfil:", error);
+          setAuth(firebaseUser, 'professor');
+        } finally {
+          setSyncing(false);
+        }
+      } else if (!isUserLoading && !firebaseUser) {
+        logout();
+      }
+    };
+
+    syncUser();
+  }, [firebaseUser, isUserLoading, setAuth, logout, db]);
 
   const handleLogout = async () => {
     await signOut(firebaseAuth);
@@ -67,14 +117,17 @@ export function Navbar() {
           {isAuthenticated && (
             <div className="flex items-center gap-4">
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-bold">{user?.name}</p>
-                <p className="text-[10px] uppercase tracking-wider opacity-80">{user?.role}</p>
+                <div className="flex items-center gap-2 justify-end">
+                  {syncing && <Loader2 className="h-3 w-3 animate-spin opacity-50" />}
+                  <p className="text-sm font-bold">{user?.name}</p>
+                </div>
+                <p className="text-[10px] uppercase tracking-wider opacity-80 font-bold">{user?.role}</p>
               </div>
               <Button 
                 variant="ghost" 
                 size="sm" 
                 onClick={handleLogout} 
-                className="bg-white/10 hover:bg-white/20 text-white border border-white/20 gap-2 px-4"
+                className="bg-white/10 hover:bg-white/20 text-white border border-white/20 gap-2 px-4 rounded-xl"
               >
                 <LogOut className="h-4 w-4" />
                 <span>Sair</span>

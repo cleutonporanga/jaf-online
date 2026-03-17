@@ -1,19 +1,28 @@
 
 "use client";
 
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-store';
 import { Button } from '@/components/ui/button';
-import { GraduationCap, ArrowRight, Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { GraduationCap, ArrowRight, Loader2, Lock, Mail } from 'lucide-react';
 import { useAuth as useFirebaseAuth, useUser } from '@/firebase';
-import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
+import { initiateEmailSignIn } from '@/firebase/non-blocking-login';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Home() {
   const { isAuthenticated } = useAuth();
   const { isUserLoading } = useUser();
   const auth = useFirebaseAuth();
   const router = useRouter();
+  const { toast } = useToast();
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -21,39 +30,101 @@ export default function Home() {
     }
   }, [isAuthenticated, router]);
 
-  const handleAccess = () => {
-    initiateAnonymousSignIn(auth);
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      toast({
+        variant: "destructive",
+        title: "Erro de validação",
+        description: "Preencha todos os campos."
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      initiateEmailSignIn(auth, email, password);
+      // O estado de autenticação será atualizado pelo FirebaseProvider e Navbar
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao acessar",
+        description: "Verifique suas credenciais e tente novamente."
+      });
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[#F5F5F5] font-body">
-      <div className="max-w-md w-full text-center space-y-8 bg-white p-10 rounded-2xl shadow-xl border border-gray-100">
-        <div className="flex flex-col items-center">
-          <div className="bg-[#4CAF50] p-4 rounded-full mb-4">
-            < GraduationCap className="h-12 w-12 text-white" />
+      <Card className="max-w-md w-full border-none shadow-2xl rounded-2xl overflow-hidden">
+        <div className="bg-[#4CAF50] p-8 text-center text-white">
+          <div className="bg-white/20 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+            <GraduationCap className="h-12 w-12 text-white" />
           </div>
-          <h1 className="text-4xl font-bold text-[#2E7D32] font-headline">ScholarView</h1>
-          <p className="text-gray-500 mt-2">Gestão escolar inteligente e simplificada.</p>
+          <h1 className="text-3xl font-bold font-headline">ScholarView</h1>
+          <p className="opacity-90 text-sm">Escola JAF - Gestão Inteligente</p>
         </div>
+        
+        <CardContent className="p-8 space-y-6 bg-white">
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">E-mail Institucional</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input 
+                  id="email"
+                  type="email"
+                  placeholder="seu@email.com"
+                  className="pl-10 h-11"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading || isUserLoading}
+                  required
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="password">Senha</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input 
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  className="pl-10 h-11"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading || isUserLoading}
+                  required
+                />
+              </div>
+            </div>
 
-        <div className="space-y-4">
-          <Button 
-            className="w-full h-12 text-lg bg-[#4CAF50] hover:bg-[#43a047] gap-2 rounded-xl shadow-lg"
-            onClick={handleAccess}
-            disabled={isUserLoading || isAuthenticated}
-          >
-            {isUserLoading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <>
-                Acessar Sistema
-                <ArrowRight className="h-5 w-5" />
-              </>
-            )}
-          </Button>
-          <p className="text-sm text-gray-400">Entre com seu e-mail institucional para começar.</p>
-        </div>
-      </div>
+            <Button 
+              type="submit"
+              className="w-full h-12 text-lg bg-[#4CAF50] hover:bg-[#43a047] gap-2 rounded-xl shadow-lg transition-all"
+              disabled={loading || isUserLoading || isAuthenticated}
+            >
+              {loading || isUserLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <>
+                  Entrar no Sistema
+                  <ArrowRight className="h-5 w-5" />
+                </>
+              )}
+            </Button>
+          </form>
+          
+          <div className="text-center">
+            <p className="text-xs text-gray-400">
+              Acesso restrito a professores e administradores autorizados.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
       
       <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl">
         <FeatureCard title="Gestão de Turmas" desc="Controle total sobre alunos e atribuições." />
@@ -66,9 +137,9 @@ export default function Home() {
 
 function FeatureCard({ title, desc }: { title: string, desc: string }) {
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center text-center">
+    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center text-center hover:shadow-md transition-shadow">
       <h3 className="font-bold text-[#2E7D32] mb-1">{title}</h3>
-      <p className="text-sm text-gray-500">{desc}</p>
+      <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
     </div>
   );
 }
