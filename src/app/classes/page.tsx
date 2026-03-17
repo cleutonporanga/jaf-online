@@ -12,7 +12,8 @@ import {
   Loader2,
   Calendar,
   FileDown,
-  Trash2
+  Trash2,
+  Edit2
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -64,18 +65,21 @@ export default function ClassesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEnrollDialogOpen, setIsEnrollDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const [courseToEdit, setCourseToEdit] = useState<any>(null);
   const [courseToDelete, setCourseToDelete] = useState<any>(null);
+  
   const [loading, setLoading] = useState(false);
   const [enrollLoading, setEnrollLoading] = useState(false);
   const [exportingId, setExportingId] = useState<string | null>(null);
 
-  // Form state for new course
   const [newCourse, setNewCourse] = useState({
     name: '',
     description: '',
-    year: new Date().getFullYear().toString(),
+    year: '2026',
     gradeLevel: '',
     professorId: '',
   });
@@ -139,12 +143,43 @@ export default function ClassesPage() {
       setNewCourse({
         name: '',
         description: '',
-        year: new Date().getFullYear().toString(),
+        year: '2026',
         gradeLevel: '',
         professorId: '',
       });
     } catch (error) {
       console.error("Erro ao criar turma:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateCourse = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!courseToEdit || !courseToEdit.name || !courseToEdit.gradeLevel) return;
+
+    setLoading(true);
+    try {
+      const courseRef = doc(db, 'courses', courseToEdit.id);
+      updateDocumentNonBlocking(courseRef, {
+        name: courseToEdit.name,
+        description: courseToEdit.description || '',
+        year: courseToEdit.year,
+        gradeLevel: courseToEdit.gradeLevel,
+        professorId: courseToEdit.professorId,
+        updatedAt: serverTimestamp()
+      });
+
+      toast({
+        title: "Turma Atualizada",
+        description: `As informações da turma ${courseToEdit.name} foram salvas.`,
+        className: "bg-[#E8F5E9] border-[#4CAF50] text-[#2E7D32]",
+      });
+      
+      setIsEditDialogOpen(false);
+      setCourseToEdit(null);
+    } catch (error) {
+      console.error("Erro ao atualizar turma:", error);
     } finally {
       setLoading(false);
     }
@@ -158,13 +193,11 @@ export default function ClassesPage() {
       const courseRef = doc(db, 'courses', selectedCourseId);
       const studentRef = doc(db, 'students', studentId);
 
-      // Update Course studentIds
       updateDocumentNonBlocking(courseRef, {
         studentIds: arrayUnion(studentId),
         updatedAt: serverTimestamp()
       });
 
-      // Update Student courseIds
       updateDocumentNonBlocking(studentRef, {
         courseIds: arrayUnion(selectedCourseId),
         updatedAt: serverTimestamp()
@@ -189,7 +222,6 @@ export default function ClassesPage() {
       description: `Compilando dados da turma ${course.name}...`,
     });
     
-    // Simulação de geração de PDF
     setTimeout(() => {
       setExportingId(null);
       toast({
@@ -203,6 +235,11 @@ export default function ClassesPage() {
   const openEnrollDialog = (courseId: string) => {
     setSelectedCourseId(courseId);
     setIsEnrollDialogOpen(true);
+  };
+
+  const openEditDialog = (course: any) => {
+    setCourseToEdit({ ...course });
+    setIsEditDialogOpen(true);
   };
 
   const confirmDeleteCourse = (course: any) => {
@@ -356,6 +393,10 @@ export default function ClassesPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openEditDialog(c)} className="cursor-pointer">
+                              <Edit2 className="h-4 w-4 mr-2" />
+                              Editar Turma
+                            </DropdownMenuItem>
                             <DropdownMenuItem 
                               className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
                               onClick={() => confirmDeleteCourse(c)}
@@ -407,42 +448,96 @@ export default function ClassesPage() {
                 </Card>
               );
             })}
-            {filteredClasses.length === 0 && (
-              <div className="col-span-full py-20 text-center bg-white rounded-3xl border-2 border-dashed border-gray-200">
-                <GraduationCap className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-bold text-gray-500">Nenhuma turma encontrada</h3>
-                <p className="text-muted-foreground">Crie uma nova turma ou ajuste sua busca.</p>
-              </div>
-            )}
           </div>
         )}
 
+        {/* Diálogo de Edição */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="text-[#2E7D32]">Editar Informações da Turma</DialogTitle>
+            </DialogHeader>
+            {courseToEdit && (
+              <form onSubmit={handleUpdateCourse} className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-name">Nome da Turma</Label>
+                  <Input 
+                    id="edit-name" 
+                    value={courseToEdit.name}
+                    onChange={e => setCourseToEdit({...courseToEdit, name: e.target.value})}
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-gradeLevel">Nível/Série</Label>
+                    <Input 
+                      id="edit-gradeLevel" 
+                      value={courseToEdit.gradeLevel}
+                      onChange={e => setCourseToEdit({...courseToEdit, gradeLevel: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-year">Ano Letivo</Label>
+                    <Input 
+                      id="edit-year" 
+                      value={courseToEdit.year}
+                      onChange={e => setCourseToEdit({...courseToEdit, year: e.target.value})}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-professor">Professor Responsável</Label>
+                  <Select 
+                    value={courseToEdit.professorId} 
+                    onValueChange={val => setCourseToEdit({...courseToEdit, professorId: val})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {activeProfessors.map(prof => (
+                        <SelectItem key={prof.id} value={prof.id}>{prof.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-description">Descrição</Label>
+                  <Textarea 
+                    id="edit-description" 
+                    value={courseToEdit.description}
+                    onChange={e => setCourseToEdit({...courseToEdit, description: e.target.value})}
+                  />
+                </div>
+                <DialogFooter>
+                  <Button type="submit" disabled={loading} className="bg-[#4CAF50] w-full">
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar Alterações"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Diálogo de Matrícula */}
         <Dialog open={isEnrollDialogOpen} onOpenChange={setIsEnrollDialogOpen}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle className="text-[#2E7D32]">Matricular Aluno</DialogTitle>
               <DialogDescription>
-                Selecione os alunos para matricular na turma: 
-                <span className="font-bold ml-1">
-                  {courses?.find(c => c.id === selectedCourseId)?.name}
-                </span>
+                Selecione os alunos para matricular na turma.
               </DialogDescription>
             </DialogHeader>
             <div className="py-4 space-y-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Buscar aluno por nome..." className="pl-9" />
-              </div>
               <ScrollArea className="h-72 border rounded-md p-2">
                 <div className="space-y-1">
                   {allStudents?.map(student => {
                     const isAlreadyEnrolled = courses?.find(c => c.id === selectedCourseId)?.studentIds?.includes(student.id);
-                    
                     return (
-                      <div 
-                        key={student.id} 
-                        className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${isAlreadyEnrolled ? 'bg-emerald-50 opacity-60' : 'hover:bg-gray-50'}`}
-                      >
+                      <div key={student.id} className="flex items-center justify-between p-3 rounded-lg border">
                         <div>
                           <p className="font-medium text-sm">{student.firstName} {student.lastName}</p>
                           <p className="text-xs text-muted-foreground">RA: {student.enrollmentNumber}</p>
@@ -450,50 +545,31 @@ export default function ClassesPage() {
                         {isAlreadyEnrolled ? (
                           <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">Matriculado</Badge>
                         ) : (
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className="text-[#4CAF50] hover:text-[#2E7D32] hover:bg-emerald-50 h-8 gap-1"
-                            onClick={() => handleEnrollStudent(student.id)}
-                            disabled={enrollLoading}
-                          >
-                            <UserPlus className="h-3 w-3" />
+                          <Button size="sm" variant="ghost" onClick={() => handleEnrollStudent(student.id)} disabled={enrollLoading}>
                             Matricular
                           </Button>
                         )}
                       </div>
                     );
                   })}
-                  {(!allStudents || allStudents.length === 0) && (
-                    <p className="text-sm text-center text-muted-foreground py-8">Nenhum aluno cadastrado no sistema.</p>
-                  )}
                 </div>
               </ScrollArea>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsEnrollDialogOpen(false)} className="w-full">
-                Fechar
-              </Button>
-            </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        {/* Delete Confirmation Alert */}
+        {/* Alerta de Exclusão */}
         <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
+              <AlertDialogTitle>Excluir Turma Permanentemente?</AlertDialogTitle>
               <AlertDialogDescription>
-                Esta ação não pode ser desfeita. Isso excluirá permanentemente a turma 
-                <strong> {courseToDelete?.name}</strong> e todos os registros associados a ela serão removidos.
+                Esta ação removerá a turma <strong>{courseToDelete?.name}</strong> e todos os registros associados. Esta operação não pode ser desfeita.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={handleDeleteCourse}
-                className="bg-red-600 hover:bg-red-700"
-              >
+              <AlertDialogAction onClick={handleDeleteCourse} className="bg-red-600">
                 Excluir Turma
               </AlertDialogAction>
             </AlertDialogFooter>
