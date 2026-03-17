@@ -14,7 +14,8 @@ import {
   User as UserIcon,
   LogOut,
   Users,
-  Loader2
+  Loader2,
+  UserPlus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePathname, useRouter } from 'next/navigation';
@@ -56,7 +57,6 @@ export function Navbar() {
 
           if (userSnap.exists()) {
             const data = userSnap.data();
-            // Sobrescreve papel se for um dos e-mails fixos para garantir sincronia
             const targetRole = (firebaseUser.email === ADMIN_EMAIL) ? 'administrador' : 
                                (firebaseUser.email === STUDENT_EMAIL) ? 'aluno' : 
                                (firebaseUser.email === TEACHER_EMAIL) ? 'professor' : 
@@ -103,6 +103,7 @@ export function Navbar() {
     { name: 'Início', href: '/dashboard', icon: Home },
     { name: 'Calendário', href: '/calendar', icon: CalendarIcon },
     { name: 'Turmas', href: '/classes', icon: GraduationCap },
+    { name: 'Alunos', href: '/students', icon: UserPlus },
     { name: 'Frequência', href: '/attendance', icon: BarChart3 },
     { name: 'Médias', href: '/grades', icon: FileEdit },
     { name: 'Reunião', href: '/meetings', icon: Users },
