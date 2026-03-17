@@ -14,15 +14,38 @@ import {
   Camera, 
   Save, 
   UserCog,
-  Plus
+  Plus,
+  Loader2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger,
+  DialogFooter,
+  DialogDescription
+} from '@/components/ui/dialog';
+import { useFirestore } from '@/firebase';
+import { collection, doc, serverTimestamp } from 'firebase/firestore';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 export default function ProfilePage() {
   const { user } = useAuth();
+  const db = useFirestore();
   const { toast } = useToast();
+  
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  // New professor form state
+  const [newProfessor, setNewProfessor] = useState({
+    name: '',
+    email: '',
+  });
 
   const handleSave = () => {
     toast({
@@ -30,6 +53,41 @@ export default function ProfilePage() {
       description: "Suas informações foram salvas com sucesso.",
       className: "bg-[#E8F5E9] border-[#4CAF50] text-[#2E7D32]",
     });
+  };
+
+  const handleRegisterProfessor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProfessor.name || !newProfessor.email) return;
+
+    setIsRegistering(true);
+    try {
+      // For the prototype, we create the user profile record.
+      // In a real app, this might trigger an invite email or Firebase Auth creation.
+      const professorId = `prof-${Date.now()}`;
+      const userRef = doc(db, 'userProfiles', professorId);
+      
+      setDocumentNonBlocking(userRef, {
+        id: professorId,
+        name: newProfessor.name,
+        email: newProfessor.email,
+        role: 'professor',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+
+      toast({
+        title: "Professor Cadastrado",
+        description: `${newProfessor.name} agora tem acesso ao sistema JAF 2026.`,
+        className: "bg-[#E8F5E9] border-[#4CAF50] text-[#2E7D32]",
+      });
+      
+      setIsDialogOpen(false);
+      setNewProfessor({ name: '', email: '' });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsRegistering(false);
+    }
   };
 
   return (
@@ -65,7 +123,7 @@ export default function ProfilePage() {
                  </div>
                  <div className="flex items-center justify-between text-sm">
                    <span className="text-muted-foreground">Desde</span>
-                   <span className="font-medium">2024</span>
+                   <span className="font-medium">2026</span>
                  </div>
               </div>
             </CardContent>
@@ -133,10 +191,51 @@ export default function ProfilePage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                    <p className="text-sm text-muted-foreground">Como administrador central, você tem privilégios para criar contas de professores e gerenciar toda a estrutura escolar.</p>
-                   <Button className="w-full bg-[#2E7D32] hover:bg-[#1b5e20] gap-2 h-11 rounded-xl shadow-lg">
-                     <Plus className="h-4 w-4" />
-                     Cadastrar Novo Professor
-                   </Button>
+                   
+                   <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                     <DialogTrigger asChild>
+                       <Button className="w-full bg-[#2E7D32] hover:bg-[#1b5e20] gap-2 h-11 rounded-xl shadow-lg">
+                         <Plus className="h-4 w-4" />
+                         Cadastrar Novo Professor
+                       </Button>
+                     </DialogTrigger>
+                     <DialogContent>
+                       <DialogHeader>
+                         <DialogTitle className="text-[#2E7D32]">Novo Professor</DialogTitle>
+                         <DialogDescription>
+                           Adicione um novo docente ao sistema JAF 2026.
+                         </DialogDescription>
+                       </DialogHeader>
+                       <form onSubmit={handleRegisterProfessor} className="space-y-4 py-4">
+                         <div className="space-y-2">
+                           <Label htmlFor="prof-name">Nome Completo</Label>
+                           <Input 
+                             id="prof-name" 
+                             placeholder="Ex: Prof. Marcos Silva" 
+                             value={newProfessor.name}
+                             onChange={e => setNewProfessor({...newProfessor, name: e.target.value})}
+                             required
+                           />
+                         </div>
+                         <div className="space-y-2">
+                           <Label htmlFor="prof-email">E-mail Institucional</Label>
+                           <Input 
+                             id="prof-email" 
+                             type="email" 
+                             placeholder="marcos@escola.com" 
+                             value={newProfessor.email}
+                             onChange={e => setNewProfessor({...newProfessor, email: e.target.value})}
+                             required
+                           />
+                         </div>
+                         <DialogFooter>
+                           <Button type="submit" disabled={isRegistering} className="w-full bg-[#4CAF50]">
+                             {isRegistering ? <Loader2 className="animate-spin h-4 w-4" /> : "Concluir Cadastro"}
+                           </Button>
+                         </DialogFooter>
+                       </form>
+                     </DialogContent>
+                   </Dialog>
                 </CardContent>
               </Card>
             )}
