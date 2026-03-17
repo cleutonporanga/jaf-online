@@ -6,26 +6,35 @@ import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore'
 
+/**
+ * Initializes the Firebase services only in the browser environment.
+ * This prevents "app/no-options" errors during Next.js server-side rendering/pre-rendering.
+ */
 export function initializeFirebase() {
-  if (!getApps().length) {
-    let firebaseApp;
-    try {
-      // Prioritize explicit config to avoid 'app/no-options' error on platforms like Vercel
-      firebaseApp = initializeApp(firebaseConfig);
-    } catch (e) {
-      console.warn('Firebase explicit initialization failed, attempting automatic fallback:', e);
-      try {
-        firebaseApp = initializeApp();
-      } catch (innerError) {
-        console.error('Firebase initialization completely failed:', innerError);
-        throw innerError;
-      }
-    }
-
-    return getSdks(firebaseApp);
+  if (typeof window === 'undefined') {
+    // Return placeholder services for SSR - they won't be used as hooks are client-only
+    return {
+      firebaseApp: null as any,
+      auth: null as any,
+      firestore: null as any
+    };
   }
 
-  return getSdks(getApp());
+  let firebaseApp: FirebaseApp;
+
+  if (!getApps().length) {
+    try {
+      // Explicitly pass config to avoid initialization errors on Vercel
+      firebaseApp = initializeApp(firebaseConfig);
+    } catch (e) {
+      console.error('Firebase initialization failed:', e);
+      throw e;
+    }
+  } else {
+    firebaseApp = getApp();
+  }
+
+  return getSdks(firebaseApp);
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {

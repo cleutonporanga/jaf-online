@@ -1,9 +1,8 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useAuth, type UserRole } from '@/lib/auth-store';
+import { useAuth as useAuthStore, type UserRole } from '@/lib/auth-store';
 import { 
   Home, 
   Calendar as CalendarIcon, 
@@ -33,14 +32,14 @@ export function Navbar() {
   const firebaseAuth = useFirebaseAuth();
   const db = useFirestore();
   const { user: firebaseUser, isUserLoading } = useUser();
-  const { user, setAuth, logout, isAuthenticated } = useAuth();
+  const { user, setAuth, logout, isAuthenticated } = useAuthStore();
   const pathname = usePathname();
   const router = useRouter();
   const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     const syncUser = async () => {
-      if (!isUserLoading && firebaseUser) {
+      if (!isUserLoading && firebaseUser && db) {
         setSyncing(true);
         try {
           const userRef = doc(db, 'userProfiles', firebaseUser.uid);
@@ -94,9 +93,11 @@ export function Navbar() {
   }, [firebaseUser, isUserLoading, setAuth, logout, db]);
 
   const handleLogout = async () => {
-    await signOut(firebaseAuth);
-    logout();
-    router.push('/');
+    if (firebaseAuth) {
+      await signOut(firebaseAuth);
+      logout();
+      router.push('/');
+    }
   };
 
   const navItems = [
