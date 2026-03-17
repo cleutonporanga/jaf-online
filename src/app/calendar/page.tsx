@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -8,10 +7,7 @@ import {
   ChevronLeft, 
   ChevronRight, 
   Plus,
-  Clock,
-  User,
-  Loader2,
-  Calendar as CalendarIcon
+  Loader2
 } from 'lucide-react';
 import { 
   format, 
@@ -54,7 +50,7 @@ export default function CalendarPage() {
 
   const [newEvent, setNewEvent] = useState({
     title: '',
-    type: 'Evento Geral',
+    type: 'Evento',
     date: format(new Date(), 'yyyy-MM-dd')
   });
 
@@ -109,7 +105,7 @@ export default function CalendarPage() {
         className: "bg-[#E8F5E9] border-[#4CAF50] text-[#2E7D32]",
       });
       setIsDialogOpen(false);
-      setNewEvent({ title: '', type: 'Evento Geral', date: format(new Date(), 'yyyy-MM-dd') });
+      setNewEvent({ title: '', type: 'Evento', date: format(new Date(), 'yyyy-MM-dd') });
     } catch (error) {
       console.error(error);
     } finally {
@@ -164,10 +160,10 @@ export default function CalendarPage() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Evento Geral">Evento Geral</SelectItem>
                           <SelectItem value="Feriado">Feriado</SelectItem>
-                          <SelectItem value="Prazo">Prazo Acadêmico</SelectItem>
                           <SelectItem value="Reunião">Reunião</SelectItem>
+                          <SelectItem value="Evento">Evento</SelectItem>
+                          <SelectItem value="Aniversário">Aniversário</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -260,10 +256,12 @@ export default function CalendarPage() {
                           className={cn(
                             "text-[10px] p-1.5 rounded-md border leading-tight truncate font-bold",
                             event.type === 'Feriado' 
-                              ? "bg-orange-50 border-orange-200 text-orange-700" 
+                              ? "bg-red-50 border-red-200 text-red-700" 
                               : event.type === 'Reunião' 
                                 ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                                : "bg-blue-50 border-blue-200 text-blue-700"
+                                : event.type === 'Evento'
+                                  ? "bg-blue-50 border-blue-200 text-blue-700"
+                                  : "bg-orange-50 border-orange-200 text-orange-700"
                           )}
                           title={event.title}
                         >
@@ -280,7 +278,7 @@ export default function CalendarPage() {
 
         <div className="flex flex-wrap gap-6 p-6 bg-white rounded-2xl shadow-sm border text-xs">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-orange-400" />
+            <div className="w-3 h-3 rounded-full bg-red-400" />
             <span className="text-gray-600 font-bold uppercase tracking-tight">Feriados</span>
           </div>
           <div className="flex items-center gap-2">
@@ -289,7 +287,11 @@ export default function CalendarPage() {
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-blue-400" />
-            <span className="text-gray-600 font-bold uppercase tracking-tight">Prazos e Geral</span>
+            <span className="text-gray-600 font-bold uppercase tracking-tight">Eventos</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-orange-400" />
+            <span className="text-gray-600 font-bold uppercase tracking-tight">Aniversários</span>
           </div>
         </div>
       </main>
