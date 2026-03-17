@@ -129,10 +129,10 @@ export function Navbar() {
               <div className="text-right hidden sm:block">
                 <div className="flex items-center gap-2 justify-end">
                   {syncing && <Loader2 className="h-3 w-3 animate-spin opacity-50" />}
-                  <p className="text-sm font-bold">{user?.name}</p>
+                  <p className="text-sm font-bold">{user?.name || 'Carregando...'}</p>
                 </div>
                 <p className="text-[10px] uppercase tracking-wider opacity-80 font-bold">
-                  {user?.role === 'aluno' ? 'Visualizador (Aluno)' : user?.role}
+                  {user?.role === 'aluno' ? 'Visualizador (Aluno)' : user?.role || 'Acessando'}
                 </p>
               </div>
               <Button 
